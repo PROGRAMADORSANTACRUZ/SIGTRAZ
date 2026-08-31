@@ -17,10 +17,9 @@ ENV VITE_PUBLIC_URL=$VITE_PUBLIC_URL
 COPY package*.json ./
 RUN npm install
 
-COPY index.html vite.config.ts tsconfig*.json postcss.config.js tailwind.config.js ./
-COPY src ./src
-COPY public ./public
-
+# Copia todo el frontend (src, public, config files) — .dockerignore excluye server/ y node_modules
+COPY . .
+RUN mkdir -p ./public
 RUN npm run build
 
 # ---- Etapa 2: Build del Backend ----

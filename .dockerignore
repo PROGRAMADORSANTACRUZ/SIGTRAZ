@@ -1,0 +1,36 @@
+# node_modules de raíz y del servidor
+node_modules
+server/node_modules
+
+# Builds anteriores
+dist
+dist-ssr
+server/dist
+
+# Git
+.git
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Archivos de editor
+.vscode
+.idea
+*.suo
+*.sw?
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archivos de deploy que no necesita el build
+deploy.sh
+deploy-labels.sh
+DEPLOYMENT_GUIDE.md
+README.DEPLOYMENT.md
+documentacion
+formatos y plantillas
+ERROR.png
