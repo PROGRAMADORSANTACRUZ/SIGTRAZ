@@ -183,8 +183,11 @@ export function AnteMortem() {
   const [filtroHasta, setFiltroHasta] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const { usuario } = useAuth()
-  // Firma automatica = nombre del usuario logueado (pendiente: gestion de usuarios).
-  const firmaUsuario = usuario?.nombre || usuario?.email || FIRMA_DEFECTO
+  // Firma automatica = nombre y apellido del usuario logueado.
+  const firmaUsuario =
+    [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() ||
+    usuario?.email ||
+    FIRMA_DEFECTO
 
   // Persiste en localStorage; agroSync refleja estos datos en el servidor para
   // compartirlos entre dispositivos (PC <-> celular).

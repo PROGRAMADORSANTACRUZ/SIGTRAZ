@@ -111,7 +111,10 @@ export function CurvaTemperaturaCanales() {
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const { usuario } = useAuth()
-  const firmaUsuario = usuario?.nombre || usuario?.email || ''
+  const firmaUsuario =
+    [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() ||
+    usuario?.email ||
+    ''
 
   const ordenesFiltradas = ordenes.filter((o) => {
     const f = o.fecha // YYYY-MM-DD

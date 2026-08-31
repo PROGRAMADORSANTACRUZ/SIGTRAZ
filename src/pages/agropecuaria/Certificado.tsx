@@ -889,7 +889,10 @@ export function Certificado() {
       ...formVacio(),
       numero: siguienteNumero(certificados),
       fecha: ahora.toLocaleDateString('en-CA'),
-      digitadoPor: usuario?.nombre || usuario?.email || '',
+      digitadoPor:
+        [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() ||
+        usuario?.email ||
+        '',
       curvaFecha: ahora.toLocaleDateString('en-CA'),
       curvaHora: ahora.toTimeString().slice(0, 5),
     })
