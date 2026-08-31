@@ -100,16 +100,12 @@ export function CurvaTemperaturaCanales() {
   const [form, setForm] = useState(formVacio)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [anteMortem, setAnteMortem] = useState<AnteMortemLite[]>(cargarAnteMortem)
-  // Por defecto se muestra solo el dia de hoy; el usuario filtra para ver mas.
+  // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
   const [filtroMes, setFiltroMes] = useState(() =>
     new Date().toLocaleDateString('en-CA').slice(0, 7),
   )
-  const [filtroDesde, setFiltroDesde] = useState(() =>
-    new Date().toLocaleDateString('en-CA'),
-  )
-  const [filtroHasta, setFiltroHasta] = useState(() =>
-    new Date().toLocaleDateString('en-CA'),
-  )
+  const [filtroDesde, setFiltroDesde] = useState('')
+  const [filtroHasta, setFiltroHasta] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [eliminarId, setEliminarId] = useState<string | null>(null)
   const [eliminando, setEliminando] = useState(false)
@@ -534,10 +530,9 @@ export function CurvaTemperaturaCanales() {
               <button
                 type="button"
                 onClick={() => {
-                  const hoy = new Date().toLocaleDateString('en-CA')
-                  setFiltroMes(hoy.slice(0, 7))
-                  setFiltroDesde(hoy)
-                  setFiltroHasta(hoy)
+                  setFiltroMes(new Date().toLocaleDateString('en-CA').slice(0, 7))
+                  setFiltroDesde('')
+                  setFiltroHasta('')
                   setBusqueda('')
                 }}
                 className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
