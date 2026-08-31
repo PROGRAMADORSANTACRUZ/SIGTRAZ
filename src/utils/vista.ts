@@ -10,10 +10,11 @@ export interface DimensionVista {
   etiqueta: string
 }
 
-// Medidas aproximadas de un iPad y un celular modernos (en px CSS).
+// Ancho aproximado (en px CSS) de un tablet y un celular. El alto ya no se usa
+// porque la vista ocupa todo el alto de la pantalla.
 export const DIMENSIONES: Record<'tablet' | 'celular', DimensionVista> = {
-  tablet: { ancho: 834, alto: 1112, etiqueta: 'Tablet' },
-  celular: { ancho: 390, alto: 800, etiqueta: 'Celular' },
+  tablet: { ancho: 900, alto: 1112, etiqueta: 'Tablet' },
+  celular: { ancho: 430, alto: 800, etiqueta: 'Celular' },
 }
 
 export function vistaGuardada(): Vista {

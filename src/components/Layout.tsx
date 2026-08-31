@@ -466,10 +466,10 @@ function SelectorVista({
 }) {
   return (
     <div>
-      <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+      <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
         Vista
       </p>
-      <div className="flex gap-1">
+      <div className="flex gap-2">
         {OPCIONES_VISTA.map((o) => (
           <button
             key={o.v}
@@ -477,10 +477,10 @@ function SelectorVista({
             title={o.label}
             aria-pressed={vista === o.v}
             onClick={() => onCambiar(o.v)}
-            className={`flex flex-1 flex-col items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium transition-colors ${
+            className={`flex flex-1 flex-col items-center gap-1.5 rounded-lg px-2 py-3 text-[11px] font-medium transition-colors ${
               vista === o.v
                 ? 'bg-brand-600 text-white'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
             {o.icono}
@@ -492,8 +492,9 @@ function SelectorVista({
   )
 }
 
-// Muestra la app dentro de un marco de tablet o celular, usando un iframe para
-// que el diseno responsive real (el mismo de un movil) se active.
+// Muestra la app a pantalla completa dentro del ancho de un tablet o celular,
+// usando un iframe para que el diseno responsive real (el de un movil) se
+// active. Ocupa todo el alto para que no se corte nada abajo.
 function VistaDispositivo({
   vista,
   onCambiar,
@@ -502,23 +503,7 @@ function VistaDispositivo({
   onCambiar: (v: Vista) => void
 }) {
   const dim = DIMENSIONES[vista]
-  const [escala, setEscala] = useState(1)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-
-  // Escala el marco para que quepa siempre en la pantalla sin deformarse.
-  useEffect(() => {
-    const calcular = () => {
-      const s = Math.min(
-        1,
-        (window.innerHeight * 0.86) / dim.alto,
-        (window.innerWidth * 0.94) / dim.ancho,
-      )
-      setEscala(s)
-    }
-    calcular()
-    window.addEventListener('resize', calcular)
-    return () => window.removeEventListener('resize', calcular)
-  }, [dim.alto, dim.ancho])
 
   // Reenvia la actividad dentro del iframe a la ventana principal para que el
   // cierre por inactividad no expulse al usuario mientras usa esta vista.
@@ -544,18 +529,18 @@ function VistaDispositivo({
   }, [vista])
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-slate-800 to-slate-900 p-4">
-      <div className="flex items-center gap-1 rounded-full bg-slate-950/70 p-1 shadow-lg">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
+      <div className="flex shrink-0 items-center justify-center gap-3 bg-slate-950 px-3 py-3">
         {OPCIONES_VISTA.map((o) => (
           <button
             key={o.v}
             type="button"
             onClick={() => onCambiar(o.v)}
             aria-pressed={vista === o.v}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-colors ${
               vista === o.v
                 ? 'bg-brand-600 text-white'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white'
             }`}
           >
             {o.icono}
@@ -564,23 +549,15 @@ function VistaDispositivo({
         ))}
       </div>
 
-      <div style={{ transform: `scale(${escala})` }} className="origin-center">
-        <div
-          className="rounded-[2.6rem] border-[12px] border-slate-950 bg-slate-950 shadow-2xl"
-          style={{ width: dim.ancho, height: dim.alto }}
-        >
-          <iframe
-            ref={iframeRef}
-            src={window.location.pathname}
-            title={`Vista ${dim.etiqueta}`}
-            className="h-full w-full rounded-[1.7rem] bg-white"
-          />
-        </div>
+      <div className="flex flex-1 justify-center overflow-hidden bg-slate-800">
+        <iframe
+          ref={iframeRef}
+          src={window.location.pathname}
+          title={`Vista ${dim.etiqueta}`}
+          className="h-full w-full border-0 bg-white shadow-2xl"
+          style={{ maxWidth: dim.ancho }}
+        />
       </div>
-
-      <p className="text-xs text-slate-400">
-        Vista de {dim.etiqueta} · asi se ve la app en el dispositivo
-      </p>
     </div>
   )
 }
