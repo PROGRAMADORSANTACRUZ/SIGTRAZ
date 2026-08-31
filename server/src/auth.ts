@@ -35,6 +35,43 @@ export async function cerrarSesion(sid: string | undefined): Promise<void> {
   await query('UPDATE sesiones SET activa = false WHERE id = $1', [sid])
 }
 
+/**
+ * Comprueba si la sesion del token sigue activa SIN actualizar la ultima
+ * actividad (para el "latido" del cliente, que no debe contar como uso). Cierra
+ * la sesion si supero la inactividad. Devuelve false si ya no es valida.
+ */
+export async function sesionSigueActiva(
+  authHeader: string | undefined,
+): Promise<boolean> {
+  if (!authHeader?.startsWith('Bearer ')) return false
+  let payload: TokenPayload
+  try {
+    payload = jwt.verify(
+      authHeader.slice('Bearer '.length),
+      config.jwtSecret,
+    ) as TokenPayload
+  } catch {
+    return false
+  }
+  if (!payload.sid) return true
+  const filas = await query(
+    'SELECT activa, ultima_actividad FROM sesiones WHERE id = $1',
+    [payload.sid],
+  )
+  const s = filas[0]
+  if (!s || s.activa === false) return false
+  const inactivaMs =
+    Date.now() -
+    new Date(s.ultima_actividad as string | number | Date).getTime()
+  if (inactivaMs > INACTIVIDAD_MS) {
+    await query('UPDATE sesiones SET activa = false WHERE id = $1', [
+      payload.sid,
+    ])
+    return false
+  }
+  return true
+}
+
 export function hashPassword(plano: string): Promise<string> {
   return bcrypt.hash(plano, 10)
 }

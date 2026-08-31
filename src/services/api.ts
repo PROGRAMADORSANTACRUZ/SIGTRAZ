@@ -315,6 +315,7 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   getMe: () => pedir<Usuario>('/auth/me'),
+  estadoSesion: () => pedir<{ activa: boolean }>('/auth/estado'),
   logout: () =>
     pedir<void>('/auth/logout', { method: 'POST' }).catch(() => undefined),
   getSesiones: () => pedir<SesionActiva[]>('/sesiones'),

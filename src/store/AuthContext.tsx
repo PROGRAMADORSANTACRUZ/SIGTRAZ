@@ -93,6 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [usuario, logout])
 
+  // Latido: cada 15 s comprueba si la sesion sigue viva en el servidor. Si un
+  // administrador la cerro (o expiro por inactividad), expulsa al usuario al
+  // instante sin esperar a que haga otra accion.
+  useEffect(() => {
+    if (!usuario) return
+    const id = window.setInterval(() => {
+      api.estadoSesion().catch(() => logout())
+    }, 15000)
+    return () => window.clearInterval(id)
+  }, [usuario, logout])
+
   const value = useMemo(
     () => ({
       usuario,

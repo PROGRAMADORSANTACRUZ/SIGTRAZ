@@ -7,6 +7,7 @@ import {
   passwordUsuarioValida,
   crearSesion,
   cerrarSesion,
+  sesionSigueActiva,
 } from '../auth.js'
 import type { EmpresaUsuario, LoginResponse, RolUsuario, Usuario } from '../types.js'
 
@@ -99,6 +100,22 @@ authRouter.post('/logout', requireAuth, async (req, res, next) => {
   try {
     await cerrarSesion(req.usuario?.sid)
     res.status(204).end()
+  } catch (err) {
+    next(err)
+  }
+})
+
+// "Latido" del cliente: comprueba si la sesion sigue viva sin contar como
+// actividad. Si un admin la cerro o expiro por inactividad, responde 401 y el
+// cliente cierra sesion al instante.
+authRouter.get('/estado', async (req, res, next) => {
+  try {
+    const activa = await sesionSigueActiva(req.headers.authorization)
+    if (!activa) {
+      res.status(401).json({ error: 'Sesion cerrada' })
+      return
+    }
+    res.json({ activa: true })
   } catch (err) {
     next(err)
   }
