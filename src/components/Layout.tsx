@@ -69,7 +69,7 @@ export const agropecuariaNavGroups: NavGroup[] = [
   {
     titulo: 'Proceso',
     items: [
-      { to: '/agropecuaria/sacrificio', label: 'Ante Mortem' },
+      { to: '/agropecuaria/sacrificio', label: 'Ante Mortem Bovino' },
       { to: '/agropecuaria/sacrificio-porcino', label: 'Ante Mortem Porcino' },
       { to: '/agropecuaria/cronologia', label: 'Cronologia' },
       { to: '/agropecuaria/pos-mortem', label: 'Pos Mortem' },

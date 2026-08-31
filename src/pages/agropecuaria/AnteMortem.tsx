@@ -640,7 +640,7 @@ export function AnteMortem() {
       <header className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-slate-900">
-            Ante Mortem
+            Ante Mortem Bovino
           </h2>
           <p className="text-slate-500">
             Inspeccion de animales antes del sacrificio.
