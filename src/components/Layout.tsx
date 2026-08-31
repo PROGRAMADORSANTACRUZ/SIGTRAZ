@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
 import { usePuntoVenta } from '../store/PuntoVentaContext'
 import { aplicarTema, temaGuardado, type Tema } from '../utils/tema'
+import {
+  DIMENSIONES,
+  dentroDeIframe,
+  guardarVista,
+  vistaGuardada,
+  type Vista,
+} from '../utils/vista'
 
 interface NavItem {
   to: string
@@ -163,6 +170,17 @@ export function Layout({
   // Cajon lateral para moviles/tablets.
   const [menuAbierto, setMenuAbierto] = useState(false)
 
+  // Vista de dispositivo (Escritorio/Tablet/Celular). Dentro del iframe de la
+  // vista previa se fuerza Escritorio para no anidar el marco.
+  const esPreview = dentroDeIframe()
+  const [vista, setVista] = useState<Vista>(() =>
+    esPreview ? 'escritorio' : vistaGuardada(),
+  )
+  const cambiarVista = (v: Vista) => {
+    setVista(v)
+    guardarVista(v)
+  }
+
   // Cierra el menu al navegar a otra ruta.
   useEffect(() => {
     setMenuAbierto(false)
@@ -172,6 +190,7 @@ export function Layout({
     setAbiertos((prev) => ({ ...prev, [titulo]: !prev[titulo] }))
 
   return (
+    <>
     <div className="flex min-h-screen">
       {menuAbierto && (
         <div
@@ -283,6 +302,12 @@ export function Layout({
           })}
         </nav>
 
+        {!esPreview && (
+          <div className="border-t border-slate-700 px-3 py-2">
+            <SelectorVista vista={vista} onCambiar={cambiarVista} />
+          </div>
+        )}
+
         <div className="border-t border-slate-700 px-3 py-2">
           <BotonTema
             conTexto
@@ -337,6 +362,10 @@ export function Layout({
         </div>
       </main>
     </div>
+    {!esPreview && vista !== 'escritorio' && (
+      <VistaDispositivo vista={vista} onCambiar={cambiarVista} />
+    )}
+    </>
   )
 }
 
@@ -392,6 +421,167 @@ function BotonTema({
         <span>{tema === 'oscuro' ? 'Modo claro' : 'Modo oscuro'}</span>
       )}
     </button>
+  )
+}
+
+// Iconos de las vistas.
+function IconoEscritorio() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+    </svg>
+  )
+}
+function IconoTablet() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="M12 18h.01" />
+    </svg>
+  )
+}
+function IconoCelular() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="2" width="12" height="20" rx="2" />
+      <path d="M12 18h.01" />
+    </svg>
+  )
+}
+
+const OPCIONES_VISTA: { v: Vista; label: string; icono: ReactNode }[] = [
+  { v: 'escritorio', label: 'Escritorio', icono: <IconoEscritorio /> },
+  { v: 'tablet', label: 'Tablet', icono: <IconoTablet /> },
+  { v: 'celular', label: 'Celular', icono: <IconoCelular /> },
+]
+
+// Selector de vista para la barra lateral (arriba de "Modo oscuro").
+function SelectorVista({
+  vista,
+  onCambiar,
+}: {
+  vista: Vista
+  onCambiar: (v: Vista) => void
+}) {
+  return (
+    <div>
+      <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        Vista
+      </p>
+      <div className="flex gap-1">
+        {OPCIONES_VISTA.map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            title={o.label}
+            aria-pressed={vista === o.v}
+            onClick={() => onCambiar(o.v)}
+            className={`flex flex-1 flex-col items-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium transition-colors ${
+              vista === o.v
+                ? 'bg-brand-600 text-white'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            {o.icono}
+            <span>{o.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Muestra la app dentro de un marco de tablet o celular, usando un iframe para
+// que el diseno responsive real (el mismo de un movil) se active.
+function VistaDispositivo({
+  vista,
+  onCambiar,
+}: {
+  vista: 'tablet' | 'celular'
+  onCambiar: (v: Vista) => void
+}) {
+  const dim = DIMENSIONES[vista]
+  const [escala, setEscala] = useState(1)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  // Escala el marco para que quepa siempre en la pantalla sin deformarse.
+  useEffect(() => {
+    const calcular = () => {
+      const s = Math.min(
+        1,
+        (window.innerHeight * 0.86) / dim.alto,
+        (window.innerWidth * 0.94) / dim.ancho,
+      )
+      setEscala(s)
+    }
+    calcular()
+    window.addEventListener('resize', calcular)
+    return () => window.removeEventListener('resize', calcular)
+  }, [dim.alto, dim.ancho])
+
+  // Reenvia la actividad dentro del iframe a la ventana principal para que el
+  // cierre por inactividad no expulse al usuario mientras usa esta vista.
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+    let ultimo = 0
+    const reenviar = () => {
+      const ahora = Date.now()
+      if (ahora - ultimo < 4000) return
+      ultimo = ahora
+      window.dispatchEvent(new Event('mousemove'))
+    }
+    const alCargar = () => {
+      const win = iframe.contentWindow
+      if (!win) return
+      ;(['mousemove', 'keydown', 'click', 'scroll', 'touchstart'] as const).forEach(
+        (ev) => win.addEventListener(ev, reenviar, { passive: true }),
+      )
+    }
+    iframe.addEventListener('load', alCargar)
+    return () => iframe.removeEventListener('load', alCargar)
+  }, [vista])
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-slate-800 to-slate-900 p-4">
+      <div className="flex items-center gap-1 rounded-full bg-slate-950/70 p-1 shadow-lg">
+        {OPCIONES_VISTA.map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => onCambiar(o.v)}
+            aria-pressed={vista === o.v}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              vista === o.v
+                ? 'bg-brand-600 text-white'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            {o.icono}
+            <span>{o.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ transform: `scale(${escala})` }} className="origin-center">
+        <div
+          className="rounded-[2.6rem] border-[12px] border-slate-950 bg-slate-950 shadow-2xl"
+          style={{ width: dim.ancho, height: dim.alto }}
+        >
+          <iframe
+            ref={iframeRef}
+            src={window.location.pathname}
+            title={`Vista ${dim.etiqueta}`}
+            className="h-full w-full rounded-[1.7rem] bg-white"
+          />
+        </div>
+      </div>
+
+      <p className="text-xs text-slate-400">
+        Vista de {dim.etiqueta} · asi se ve la app en el dispositivo
+      </p>
+    </div>
   )
 }
 
