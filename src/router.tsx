@@ -38,6 +38,7 @@ import { FichasTecnicas } from './pages/FichasTecnicas'
 import { CuartosFrios } from './pages/CuartosFrios'
 import { Colaboradores } from './pages/Colaboradores'
 import { Usuarios } from './pages/Usuarios'
+import { SesionesActivas } from './pages/SesionesActivas'
 import { Empresas } from './pages/Empresas'
 import { AgroDashboard } from './pages/agropecuaria/AgroDashboard'
 import { CertificadoDecomiso } from './pages/agropecuaria/CertificadoDecomiso'
@@ -205,6 +206,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Usuarios /> },
           { path: 'usuarios', element: <Usuarios /> },
+          { path: 'sesiones', element: <SesionesActivas /> },
           { path: 'solicitud-credito', element: <SolicitudCredito /> },
           { path: 'vinculacion-clientes', element: <VinculacionClientes /> },
           { path: 'registro-proveedores', element: <RegistroProveedores /> },

@@ -4,12 +4,16 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { api, getToken, setToken, setPuntoVentaActivo } from '../services/api'
 import { precargarAgro } from '../services/agroSync'
 import type { Usuario } from '../types/trazabilidad'
+
+/** Minutos de inactividad tras los que se cierra la sesion automaticamente. */
+const INACTIVIDAD_MS = 5 * 60 * 1000
 
 interface AuthContextValue {
   usuario: Usuario | null
@@ -52,10 +56,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
+    // Avisa al servidor para cerrar la sesion en la base de datos (no bloquea).
+    void api.logout()
     setToken(null)
     setPuntoVentaActivo(null)
     setUsuario(null)
   }, [])
+
+  // Cierre automatico por inactividad: cualquier actividad del usuario reinicia
+  // el temporizador de 5 minutos; si se agota, se cierra la sesion.
+  const temporizador = useRef<number | undefined>(undefined)
+  useEffect(() => {
+    if (!usuario) return
+
+    const reiniciar = () => {
+      if (temporizador.current) window.clearTimeout(temporizador.current)
+      temporizador.current = window.setTimeout(() => {
+        logout()
+      }, INACTIVIDAD_MS)
+    }
+
+    const eventos: (keyof WindowEventMap)[] = [
+      'mousemove',
+      'mousedown',
+      'keydown',
+      'touchstart',
+      'scroll',
+      'click',
+    ]
+    eventos.forEach((ev) => window.addEventListener(ev, reiniciar, { passive: true }))
+    reiniciar()
+
+    return () => {
+      if (temporizador.current) window.clearTimeout(temporizador.current)
+      eventos.forEach((ev) => window.removeEventListener(ev, reiniciar))
+    }
+  }, [usuario, logout])
 
   const value = useMemo(
     () => ({

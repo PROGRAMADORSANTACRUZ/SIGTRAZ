@@ -97,7 +97,10 @@ export const agropecuariaNavGroups: NavGroup[] = [
 export const adminNavGroups: NavGroup[] = [
   {
     titulo: 'Administracion',
-    items: [{ to: '/admin/usuarios', label: 'Usuarios' }],
+    items: [
+      { to: '/admin/usuarios', label: 'Usuarios' },
+      { to: '/admin/sesiones', label: 'Sesiones activas' },
+    ],
   },
 ]
 

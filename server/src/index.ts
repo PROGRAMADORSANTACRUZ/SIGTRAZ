@@ -52,6 +52,7 @@ import { clientesRouter } from './routes/clientes.js'
 import { usuariosRouter } from './routes/usuarios.js'
 import { edicionesLogRouter } from './routes/edicionesLog.js'
 import { agroKvRouter } from './routes/agroKv.js'
+import { sesionesRouter } from './routes/sesiones.js'
 
 const app = express()
 
@@ -147,6 +148,7 @@ app.use('/api/mercado', requireAuth, mercadoRouter)
 app.use('/api/estadisticas', requireAuth, estadisticasRouter)
 app.use('/api/ediciones-log', requireAuth, edicionesLogRouter)
 app.use('/api/agro-kv', requireAuth, agroKvRouter)
+app.use('/api/sesiones', requireAuth, sesionesRouter)
 
 // Manejador de errores centralizado
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

@@ -5,6 +5,8 @@ import {
   requireAuth,
   verificarPassword,
   passwordUsuarioValida,
+  crearSesion,
+  cerrarSesion,
 } from '../auth.js'
 import type { EmpresaUsuario, LoginResponse, RolUsuario, Usuario } from '../types.js'
 
@@ -76,15 +78,27 @@ authRouter.post('/login', async (req, res, next) => {
     }
 
     const usuario = mapUsuario(fila)
+    const sid = await crearSesion(usuario.id, req.headers['user-agent'])
     const token = firmarToken({
       sub: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
       nombre: usuario.nombre,
+      sid,
     })
 
     const respuesta: LoginResponse = { token, usuario }
     res.json(respuesta)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Cierra la sesion actual (al pulsar "Cerrar sesion" en el cliente).
+authRouter.post('/logout', requireAuth, async (req, res, next) => {
+  try {
+    await cerrarSesion(req.usuario?.sid)
+    res.status(204).end()
   } catch (err) {
     next(err)
   }

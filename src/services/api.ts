@@ -119,6 +119,20 @@ export interface RespuestaAsistente {
   datos?: { etiqueta: string; valor: string | number }[]
 }
 
+export interface SesionActiva {
+  id: string
+  usuarioId: string
+  nombre: string
+  apellido?: string
+  email: string
+  rol: string
+  empresa?: string
+  creadaEn: string
+  ultimaActividad: string
+  userAgent?: string
+  esActual: boolean
+}
+
 export type NuevoContratista = Omit<Contratista, 'id' | 'fechaCreacion'>
 export type NuevoAcondicionamiento = Omit<
   Acondicionamiento,
@@ -301,6 +315,11 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   getMe: () => pedir<Usuario>('/auth/me'),
+  logout: () =>
+    pedir<void>('/auth/logout', { method: 'POST' }).catch(() => undefined),
+  getSesiones: () => pedir<SesionActiva[]>('/sesiones'),
+  cerrarSesion: (id: string) =>
+    pedir<void>(`/sesiones/${id}`, { method: 'DELETE' }),
   verificarPassword: (password: string) =>
     pedir<{ ok: boolean }>('/auth/verificar-password', {
       method: 'POST',

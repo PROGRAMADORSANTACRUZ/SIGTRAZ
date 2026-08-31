@@ -113,6 +113,21 @@ ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check
 -- Los usuarios existentes sin empresa quedan en Carnes Santacruz por defecto.
 UPDATE usuarios SET empresa = 'CARNES SANTACRUZ' WHERE empresa IS NULL;
 
+-- Sesiones activas: permite ver quien esta conectado, cerrar sesiones desde el
+-- panel de administracion y cerrar por inactividad. El token JWT lleva el id de
+-- la sesion (sid); cada peticion actualiza ultima_actividad.
+CREATE TABLE IF NOT EXISTS sesiones (
+    id               UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id       INTEGER      NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    creada_en        TIMESTAMP    NOT NULL DEFAULT now(),
+    ultima_actividad TIMESTAMP    NOT NULL DEFAULT now(),
+    user_agent       VARCHAR(300),
+    activa           BOOLEAN      NOT NULL DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_sesiones_activa ON sesiones(activa);
+
+
 CREATE TABLE IF NOT EXISTS proveedores (
     id             SERIAL       PRIMARY KEY,
     nombre         VARCHAR(150) NOT NULL UNIQUE,
