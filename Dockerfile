@@ -54,5 +54,5 @@ RUN chmod +x /docker-start.sh
 
 EXPOSE 80
 
-ENTRYPOINT ["/usr/sbin/dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/docker-start.sh"]
