@@ -24,7 +24,7 @@ function validar(body: Partial<NuevoPersonal>): string[] {
 
 const COLS = `id, cedula, nombres, punto_venta, fecha_creacion`
 
-personalRouter.get('/', async (req, res, next) => {
+personalRouter.get('/', async (_req, res, next) => {
   try {
     const rows = await query(
       `SELECT ${COLS} FROM personal ORDER BY nombres ASC`,

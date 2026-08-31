@@ -164,7 +164,7 @@ productosRouter.post('/carga-masiva', async (req, res, next) => {
     for (let inicio = 0; inicio < nuevos.length; inicio += TAM_LOTE) {
       const lote = nuevos.slice(inicio, inicio + TAM_LOTE)
       const valores: string[] = []
-      const params: (string | number)[] = []
+      const params: (string | number | null)[] = []
       lote.forEach((fila, idx) => {
         const base = idx * 6
         valores.push(

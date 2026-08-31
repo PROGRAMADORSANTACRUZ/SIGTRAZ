@@ -36,7 +36,7 @@ function validar(body: Partial<NuevoCatalogoSuesdr>): string[] {
 
 const COLS = `id, tipo, nombre, fecha_creacion`
 
-catalogosSuesdrRouter.get('/', async (req, res, next) => {
+catalogosSuesdrRouter.get('/', async (_req, res, next) => {
   try {
     const rows = await query(
       `SELECT ${COLS} FROM catalogos_suesdr ORDER BY tipo ASC, nombre ASC`,

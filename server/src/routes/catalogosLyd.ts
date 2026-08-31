@@ -30,7 +30,7 @@ function validar(body: Partial<NuevoCatalogoLyd>): string[] {
 
 const COLS = `id, tipo, nombre, fecha_creacion`
 
-catalogosLydRouter.get('/', async (req, res, next) => {
+catalogosLydRouter.get('/', async (_req, res, next) => {
   try {
     const rows = await query(
       `SELECT ${COLS} FROM catalogos_lyd ORDER BY tipo ASC, nombre ASC`,
