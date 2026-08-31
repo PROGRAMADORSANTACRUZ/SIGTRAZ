@@ -73,18 +73,6 @@ function plantillaCertificado(contenido: string, editable = false): string {
   )
 }
 
-function imprimir(contenido: string) {
-  const win = window.open('', '_blank')
-  if (!win) return
-  win.document.write(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Certificado de decomiso</title><style>${ESTILOS_DOC}</style></head><body>` +
-      `<div class="barra"><button class="imp" onclick="window.print()">Imprimir / Guardar PDF</button></div>` +
-      plantillaCertificado(contenido, true) +
-      `</body></html>`,
-  )
-  win.document.close()
-}
-
 interface EdicionForm {
   cliente: string
   lote: string

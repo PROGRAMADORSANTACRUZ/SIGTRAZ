@@ -33,6 +33,7 @@ export interface ActaDespachoDatos {
   olor?: string
   color?: string
   aspecto?: string
+  firmaCalidad?: string
 }
 
 function fmtFechaHora(valor?: string): string {

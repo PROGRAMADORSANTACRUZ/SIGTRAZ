@@ -314,7 +314,7 @@ export function Cronologia() {
   }
 
   function registrarMovimiento(
-    accion: 'CREÓ' | 'EDITÓ',
+    accion: 'CREÓ' | 'EDITÓ' | 'ELIMINÓ',
     referencia: string,
     cambios?: { campo: string; antes: string; ahora: string }[],
   ) {

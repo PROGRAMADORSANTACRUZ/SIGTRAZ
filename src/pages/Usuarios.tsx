@@ -24,7 +24,7 @@ import {
 const NAV_POR_EMPRESA: Record<EmpresaUsuario, NavGroup[]> = {
   'CARNES SANTACRUZ': carnesNavGroups,
   'AGROPECUARIA SANTACRUZ': agropecuariaNavGroups,
-  'INVERSIONES SANTACRUZ': [],
+  'INVERSIONES SERRANO MILLAN': [],
 }
 
 // Grupos de modulos seleccionables (se excluye el Dashboard/home end:true).

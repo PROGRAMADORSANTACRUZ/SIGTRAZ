@@ -1109,7 +1109,7 @@ export function Entradas() {
               />
               <button
                 type="button"
-                onClick={buscarCertificado}
+                onClick={() => buscarCertificado()}
                 className="shrink-0 rounded-md border border-brand-300 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
               >
                 Buscar
