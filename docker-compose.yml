@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: sigtraz-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-sigtraz}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sigtraz123}
+      POSTGRES_DB: ${DB_DATABASE:-sigtraz}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sigtraz}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sigtraz-network
+    restart: unless-stopped
+    labels:
+      - "dokploy.managed=true"
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: sigtraz-api
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-sigtraz}
+      DB_PASSWORD: ${DB_PASSWORD:-sigtraz123}
+      DB_DATABASE: ${DB_DATABASE:-sigtraz}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://sigtraz.grupo-santacruz.com}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      SEED_PASSWORD: ${SEED_PASSWORD:-sigtraz123}
+    ports:
+      - "${API_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sigtraz-network
+    restart: unless-stopped
+    labels:
+      - "dokploy.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.sigtraz-api.rule=Host(`sigtraz.grupo-santacruz.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.sigtraz-api.entrypoints=websecure"
+      - "traefik.http.routers.sigtraz-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sigtraz-api.loadbalancer.server.port=4000"
+
+  # Frontend Web App
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: sigtraz-web
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-https://sigtraz.grupo-santacruz.com/api}
+    networks:
+      - sigtraz-network
+    restart: unless-stopped
+    labels:
+      - "dokploy.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.sigtraz.rule=Host(`sigtraz.grupo-santacruz.com`)"
+      - "traefik.http.routers.sigtraz.entrypoints=websecure"
+      - "traefik.http.routers.sigtraz.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sigtraz.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.sigtraz-redirectslash.redirectregex.regex=^(https?://[^/]+)$$"
+      - "traefik.http.middlewares.sigtraz-redirectslash.redirectregex.replacement=$${1}/"
+      - "traefik.http.routers.sigtraz.middlewares=sigtraz-redirectslash"
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  sigtraz-network:
+    driver: bridge
