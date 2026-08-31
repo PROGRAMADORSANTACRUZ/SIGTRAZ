@@ -214,20 +214,3 @@ CREATE TABLE IF NOT EXISTS programas (
     activo         BOOLEAN       NOT NULL DEFAULT true,
     fecha_creacion TIMESTAMP     NOT NULL DEFAULT now()
 );
-
--- --------------------------- Semilla ---------------------------------
-INSERT INTO productos (id, sku, nombre, categoria, unidad) VALUES
-    ('p1', 'CAF-001', 'Cafe tostado premium',  'Bebidas',   'kg'),
-    ('p2', 'MIE-002', 'Miel organica',         'Alimentos', 'L'),
-    ('p3', 'HAR-003', 'Harina integral',       'Alimentos', 'kg'),
-    ('p4', 'ACE-004', 'Aceite de oliva extra', 'Alimentos', 'L')
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO entradas
-    (fecha, producto_id, lote_codigo, cantidad, proveedor, almacen, responsable, documento, notas)
-SELECT v.* FROM (VALUES
-    (TIMESTAMP '2026-06-02 09:15:00', 'p1', 'L-CAF-2026-0012', 500::numeric, 'Tostadores del Valle', 'Almacen Norte',   'Luis Mora',  'GR-2026-0451', 'Recepcion completa'),
-    (TIMESTAMP '2026-06-20 10:40:00', 'p2', 'L-MIE-2026-0005', 180::numeric, 'Apiarios del Sur',     'Almacen Central', 'Sofia Diaz', 'FAC-8890',     NULL),
-    (TIMESTAMP '2026-07-05 08:05:00', 'p3', 'L-HAR-2026-0021', 900::numeric, 'Molinos Union',        'Almacen Norte',   'Pedro Ruiz', 'GR-2026-0512', 'Pendiente inspeccion de calidad')
-) AS v(fecha, producto_id, lote_codigo, cantidad, proveedor, almacen, responsable, documento, notas)
-WHERE NOT EXISTS (SELECT 1 FROM entradas);
