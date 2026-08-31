@@ -288,7 +288,9 @@ export function Layout({
 
         {usuario && (
           <div className="border-t border-slate-700 p-4">
-            <p className="text-sm font-medium text-white">{usuario.nombre}</p>
+            <p className="text-sm font-medium text-white">
+              {[usuario.nombre, usuario.apellido].filter(Boolean).join(' ')}
+            </p>
             <p className="text-xs text-slate-400">{usuario.rol}</p>
             <button
               onClick={logout}
