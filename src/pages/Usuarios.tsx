@@ -46,6 +46,8 @@ const rolEstilos: Record<RolUsuario, string> = {
   'Auxiliar de calidad PDV': 'bg-blue-100 text-blue-800',
   'Auxiliar de calidad Planta': 'bg-teal-100 text-teal-800',
   'Medico Veterinario': 'bg-amber-100 text-amber-800',
+  'Medico Veterinario Bovino': 'bg-amber-100 text-amber-800',
+  'Medico Veterinario Porcino': 'bg-pink-100 text-pink-800',
   Consultor: 'bg-slate-200 text-slate-700',
 }
 

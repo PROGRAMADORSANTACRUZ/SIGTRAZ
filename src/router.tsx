@@ -42,6 +42,7 @@ import { Empresas } from './pages/Empresas'
 import { AgroDashboard } from './pages/agropecuaria/AgroDashboard'
 import { CertificadoDecomiso } from './pages/agropecuaria/CertificadoDecomiso'
 import { AnteMortem } from './pages/agropecuaria/AnteMortem'
+import { AnteMortemPorcino } from './pages/agropecuaria/AnteMortemPorcino'
 import { Cronologia } from './pages/agropecuaria/Cronologia'
 import { PosMortem } from './pages/agropecuaria/PosMortem'
 import { CurvaTemperaturaCanales } from './pages/agropecuaria/CurvaTemperaturaCanales'
@@ -135,6 +136,10 @@ export const router = createBrowserRouter([
           {
             path: 'sacrificio',
             element: <AnteMortem />,
+          },
+          {
+            path: 'sacrificio-porcino',
+            element: <AnteMortemPorcino />,
           },
           {
             path: 'cronologia',

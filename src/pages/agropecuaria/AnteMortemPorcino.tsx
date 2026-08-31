@@ -9,7 +9,7 @@ import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
 
 const FIRMA_DEFECTO = 'CLAUDIA DE LOS REYES'
-const STORAGE_KEY = 'agro_antemortem'
+const STORAGE_KEY = 'agro_antemortem_porcino'
 import {
   propietariosSeed,
   proveedoresSeed,
@@ -43,10 +43,9 @@ interface RegistroAnteMortem {
   predio: string
   municipio: string
   departamento: string
-  novillo: number
-  vaca: number
-  toro: number
-  bufalo: number
+  marranas: number
+  machos: number
+  hembras: number
   dictamen: string
   beneficioDirecto: string
   beneficioEspecial: string
@@ -73,10 +72,9 @@ const formVacio = (): Omit<RegistroAnteMortem, 'id'> => ({
   predio: '',
   municipio: '',
   departamento: '',
-  novillo: 0,
-  vaca: 0,
-  toro: 0,
-  bufalo: 0,
+  marranas: 0,
+  machos: 0,
+  hembras: 0,
   dictamen: '',
   beneficioDirecto: '',
   beneficioEspecial: '',
@@ -103,10 +101,9 @@ const ETIQUETAS: Record<keyof Omit<RegistroAnteMortem, 'id'>, string> = {
   predio: 'Predio',
   municipio: 'Municipio',
   departamento: 'Departamento',
-  novillo: 'Novillo',
-  vaca: 'Vaca',
-  toro: 'Toro',
-  bufalo: 'Bufalo',
+  marranas: 'Marranas',
+  machos: 'Machos',
+  hembras: 'Hembras',
   dictamen: 'Dictamen',
   beneficioDirecto: 'Beneficio de emergencia',
   beneficioEspecial: 'Beneficio bajo condiciones especiales',
@@ -140,7 +137,7 @@ function calcularCambios(
   return cambios
 }
 
-export function AnteMortem() {
+export function AnteMortemPorcino() {
   const propietarios = useCatalogo('Propietarios', propietariosSeed)
   const proveedores = useCatalogo('Proveedores', proveedoresSeed)
   const firmadores = useCatalogo('Firmadores', firmadoresSeed)
@@ -213,7 +210,7 @@ export function AnteMortem() {
     })
   }, [registros, filtroMes, filtroDesde, filtroHasta, busqueda])
 
-  // Consecutivo visual ATMB-N por orden de creacion (los registros se guardan al inicio).
+  // Consecutivo visual ATMP-N por orden de creacion (los registros se guardan al inicio).
   const consecutivoPorId = useMemo(() => {
     const m = new Map<string, number>()
     const total = registros.length
@@ -222,8 +219,8 @@ export function AnteMortem() {
   }, [registros])
 
   const total = useMemo(
-    () => form.novillo + form.vaca + form.toro + form.bufalo,
-    [form.novillo, form.vaca, form.toro, form.bufalo],
+    () => form.marranas + form.machos + form.hembras,
+    [form.marranas, form.machos, form.hembras],
   )
 
   // Tiempo de reposo = diferencia entre hora de ingreso y hora de beneficio.
@@ -297,7 +294,7 @@ export function AnteMortem() {
     requeridosTexto.forEach((k) => {
       if (!String(form[k]).trim()) faltan.push(ETIQUETAS[k])
     })
-    if (total <= 0) faltan.push('Cantidad de animales (Novillo/Vaca/Toro/Bufalo)')
+    if (total <= 0) faltan.push('Cantidad de animales (Marranas/Machos/Hembras)')
     return faltan
   }
 
@@ -384,11 +381,10 @@ export function AnteMortem() {
       PREDIO: r.predio,
       MUNICIPIO: r.municipio,
       DEPARTAMENTO: r.departamento,
-      NOVILLO: r.novillo,
-      VACA: r.vaca,
-      TORO: r.toro,
-      BUFALO: r.bufalo,
-      TOTAL: r.novillo + r.vaca + r.toro + r.bufalo,
+      MARRANAS: r.marranas,
+      MACHOS: r.machos,
+      HEMBRAS: r.hembras,
+      TOTAL: r.marranas + r.machos + r.hembras,
       DICTAMEN: r.dictamen,
       'BENEFICIO DE EMERGENCIA': r.beneficioDirecto,
       'BENEFICIO BAJO CONDICIONES ESPECIALES': r.beneficioEspecial,
@@ -408,7 +404,7 @@ export function AnteMortem() {
     const nCol = columnas.length
 
     const wb = new ExcelJS.Workbook()
-    const ws = wb.addWorksheet('Ante Mortem', {
+    const ws = wb.addWorksheet('Ante Mortem Porcino', {
       views: [{ showGridLines: false }],
     })
 
@@ -472,7 +468,7 @@ export function AnteMortem() {
 
     // Logo (izquierda) y titulo (centro)
     ws.mergeCells(1, 1, 3, logoCols)
-    ponerBloque(1, tituloIni, 3, tituloFin, 'INSPECCION ANTE MORTEM PLANTA BOVINO', {
+    ponerBloque(1, tituloIni, 3, tituloFin, 'INSPECCION ANTE MORTEM PLANTA PORCINO', {
       size: 18,
       wrap: true,
     })
@@ -590,7 +586,7 @@ export function AnteMortem() {
       .join('')
     const win = window.open('', '_blank')
     if (!win) return
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ante Mortem</title><style>body{font-family:Arial,sans-serif;padding:16px;}h1{font-size:16px;}table{border-collapse:collapse;width:100%;font-size:9px;}th,td{border:1px solid #94a3b8;padding:4px;text-align:left;}th{background:#e2e8f0;}</style></head><body><h1>ANTE MORTEM</h1><table><thead><tr>${encabezado}</tr></thead><tbody>${cuerpo}</tbody></table><script>window.onload=function(){window.print();}</script></body></html>`)
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ante Mortem Porcino</title><style>body{font-family:Arial,sans-serif;padding:16px;}h1{font-size:16px;}table{border-collapse:collapse;width:100%;font-size:9px;}th,td{border:1px solid #94a3b8;padding:4px;text-align:left;}th{background:#e2e8f0;}</style></head><body><h1>ANTE MORTEM PORCINO</h1><table><thead><tr>${encabezado}</tr></thead><tbody>${cuerpo}</tbody></table><script>window.onload=function(){window.print();}</script></body></html>`)
     win.document.close()
   }
 
@@ -627,7 +623,7 @@ export function AnteMortem() {
     cambios?: { campo: string; antes: string; ahora: string }[],
   ) {
     agregarMovimiento({
-      modulo: 'ANTE MORTEM',
+      modulo: 'ANTE MORTEM PORCINO',
       accion,
       referencia,
       usuario: usuario?.nombre || usuario?.email || 'DESCONOCIDO',
@@ -640,7 +636,7 @@ export function AnteMortem() {
       <header className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-slate-900">
-            Ante Mortem
+            Ante Mortem Porcino
           </h2>
           <p className="text-slate-500">
             Inspeccion de animales antes del sacrificio.
@@ -783,47 +779,39 @@ export function AnteMortem() {
               />
             </Campo>
             <div className="grid grid-cols-2 gap-4 md:col-span-5 md:grid-cols-5">
-              <Campo label="Novillo">
+              <Campo label="Marranas">
                 <input
                   type="number"
                   min={0}
                   data-no-upper
                   className={inputClase}
-                  value={form.novillo}
+                  value={form.marranas}
                   onChange={(e) =>
-                    actualizar('novillo', Number(e.target.value) || 0)
+                    actualizar('marranas', Number(e.target.value) || 0)
                   }
                 />
               </Campo>
-              <Campo label="Vaca">
+              <Campo label="Machos">
                 <input
                   type="number"
                   min={0}
                   data-no-upper
                   className={inputClase}
-                  value={form.vaca}
-                  onChange={(e) => actualizar('vaca', Number(e.target.value) || 0)}
-                />
-              </Campo>
-              <Campo label="Toro">
-                <input
-                  type="number"
-                  min={0}
-                  data-no-upper
-                  className={inputClase}
-                  value={form.toro}
-                  onChange={(e) => actualizar('toro', Number(e.target.value) || 0)}
-                />
-              </Campo>
-              <Campo label="Bufalo">
-                <input
-                  type="number"
-                  min={0}
-                  data-no-upper
-                  className={inputClase}
-                  value={form.bufalo}
+                  value={form.machos}
                   onChange={(e) =>
-                    actualizar('bufalo', Number(e.target.value) || 0)
+                    actualizar('machos', Number(e.target.value) || 0)
+                  }
+                />
+              </Campo>
+              <Campo label="Hembras">
+                <input
+                  type="number"
+                  min={0}
+                  data-no-upper
+                  className={inputClase}
+                  value={form.hembras}
+                  onChange={(e) =>
+                    actualizar('hembras', Number(e.target.value) || 0)
                   }
                 />
               </Campo>
@@ -1114,7 +1102,7 @@ export function AnteMortem() {
                       />
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-700">
-                      ATMB-{consecutivoPorId.get(r.id) ?? '?'}
+                      ATMP-{consecutivoPorId.get(r.id) ?? '?'}
                     </td>
                     <td className="px-4 py-3">{r.fechaIngreso}</td>
                     <td className="px-4 py-3">{r.fechaBeneficio}</td>
@@ -1131,7 +1119,7 @@ export function AnteMortem() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {r.novillo + r.vaca + r.toro + r.bufalo}
+                      {r.marranas + r.machos + r.hembras}
                     </td>
                     <td className="px-4 py-3">{r.dictamen}</td>
                     <td className="px-4 py-3">
