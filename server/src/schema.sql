@@ -83,7 +83,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     rol            VARCHAR(40)  NOT NULL
                    CHECK (rol IN ('Administrador', 'Calidad',
                                   'Auxiliar de calidad PDV',
-                                  'Auxiliar de calidad Planta', 'Medico Veterinario',
+                                  'Auxiliar de calidad Planta',
+                                  'Medico Veterinario Bovino',
+                                  'Medico Veterinario Porcino',
                                   'Consultor')),
     empresa        VARCHAR(60),
     activo         BOOLEAN      NOT NULL DEFAULT true,
@@ -102,9 +104,11 @@ ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;
 -- Convierte los roles antiguos a los nuevos antes de aplicar la restriccion.
 UPDATE usuarios SET rol = 'Auxiliar de calidad PDV' WHERE rol = 'Operador';
 UPDATE usuarios SET rol = 'Consultor'               WHERE rol = 'Consulta';
+UPDATE usuarios SET rol = 'Medico Veterinario Bovino' WHERE rol = 'Medico Veterinario';
 ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check
     CHECK (rol IN ('Administrador', 'Calidad', 'Auxiliar de calidad PDV',
-                   'Auxiliar de calidad Planta', 'Medico Veterinario',
+                   'Auxiliar de calidad Planta',
+                   'Medico Veterinario Bovino', 'Medico Veterinario Porcino',
                    'Consultor'));
 -- Los usuarios existentes sin empresa quedan en Carnes Santacruz por defecto.
 UPDATE usuarios SET empresa = 'CARNES SANTACRUZ' WHERE empresa IS NULL;

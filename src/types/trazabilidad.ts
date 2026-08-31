@@ -370,7 +370,6 @@ export type RolUsuario =
   | 'Calidad'
   | 'Auxiliar de calidad PDV'
   | 'Auxiliar de calidad Planta'
-  | 'Medico Veterinario'
   | 'Medico Veterinario Bovino'
   | 'Medico Veterinario Porcino'
   | 'Consultor'
@@ -380,7 +379,6 @@ export const ROLES: RolUsuario[] = [
   'Calidad',
   'Auxiliar de calidad PDV',
   'Auxiliar de calidad Planta',
-  'Medico Veterinario',
   'Medico Veterinario Bovino',
   'Medico Veterinario Porcino',
   'Consultor',
@@ -409,7 +407,6 @@ export const ROLES_POR_EMPRESA: Record<EmpresaUsuario, RolUsuario[]> = {
     'Administrador',
     'Calidad',
     'Auxiliar de calidad Planta',
-    'Medico Veterinario',
     'Medico Veterinario Bovino',
     'Medico Veterinario Porcino',
     'Consultor',
