@@ -4,8 +4,9 @@ import {
   firmarToken,
   requireAuth,
   verificarPassword,
+  passwordUsuarioValida,
 } from '../auth.js'
-import type { LoginResponse, RolUsuario, Usuario } from '../types.js'
+import type { EmpresaUsuario, LoginResponse, RolUsuario, Usuario } from '../types.js'
 
 export const authRouter = Router()
 
@@ -13,10 +14,18 @@ function mapUsuario(r: Record<string, unknown>): Usuario {
   return {
     id: String(r.id),
     nombre: r.nombre as string,
+    apellido: (r.apellido as string | null) ?? undefined,
     email: r.email as string,
     rol: r.rol as RolUsuario,
+    empresa: (r.empresa as EmpresaUsuario | null) ?? undefined,
     activo: Boolean(r.activo),
     fechaCreacion: (r.fecha_creacion as Date).toISOString(),
+    puntosVenta: Array.isArray(r.puntos_venta)
+      ? (r.puntos_venta as unknown[]).map((n) => Number(n))
+      : [],
+    modulos: Array.isArray(r.modulos)
+      ? (r.modulos as unknown[]).filter((x): x is string => typeof x === 'string')
+      : [],
   }
 }
 
@@ -33,9 +42,16 @@ authRouter.post('/login', async (req, res, next) => {
     }
 
     const rows = await query(
-      `SELECT id, nombre, email, rol, activo, password_hash, fecha_creacion
-         FROM usuarios
-        WHERE email = $1`,
+      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.activo, u.password_hash, u.fecha_creacion, u.modulos,
+              COALESCE(
+                ARRAY_AGG(upv.punto_venta_id)
+                  FILTER (WHERE upv.punto_venta_id IS NOT NULL),
+                '{}'
+              ) AS puntos_venta
+         FROM usuarios u
+         LEFT JOIN usuarios_puntos_venta upv ON upv.usuario_id = u.id
+        WHERE u.email = $1
+        GROUP BY u.id`,
       [email.trim()],
     )
 
@@ -77,9 +93,16 @@ authRouter.post('/login', async (req, res, next) => {
 authRouter.get('/me', requireAuth, async (req, res, next) => {
   try {
     const rows = await query(
-      `SELECT id, nombre, email, rol, activo, fecha_creacion
-         FROM usuarios
-        WHERE id = $1`,
+      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.activo, u.fecha_creacion, u.modulos,
+              COALESCE(
+                ARRAY_AGG(upv.punto_venta_id)
+                  FILTER (WHERE upv.punto_venta_id IS NOT NULL),
+                '{}'
+              ) AS puntos_venta
+         FROM usuarios u
+         LEFT JOIN usuarios_puntos_venta upv ON upv.usuario_id = u.id
+        WHERE u.id = $1
+        GROUP BY u.id`,
       [Number(req.usuario!.sub)],
     )
 
@@ -89,6 +112,26 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
     }
 
     res.json(mapUsuario(rows[0]))
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Verifica la contrasena del usuario autenticado (para confirmar acciones
+// sensibles como editar antes de mostrar el formulario).
+authRouter.post('/verificar-password', requireAuth, async (req, res, next) => {
+  try {
+    const password = ((req.body?.password as string | undefined) ?? '').trim()
+    if (!password) {
+      res.status(400).json({ error: 'Debes ingresar tu contrasena' })
+      return
+    }
+    const valida = await passwordUsuarioValida(req.usuario?.sub, password)
+    if (!valida) {
+      res.status(403).json({ error: 'Contrasena incorrecta' })
+      return
+    }
+    res.json({ ok: true })
   } catch (err) {
     next(err)
   }

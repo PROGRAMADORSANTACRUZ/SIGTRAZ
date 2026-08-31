@@ -19,6 +19,7 @@ export function Movimientos() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
+              <th className="px-4 py-3 font-medium">#</th>
               <th className="px-4 py-3 font-medium">Fecha</th>
               <th className="px-4 py-3 font-medium">Tipo</th>
               <th className="px-4 py-3 font-medium">Lote</th>
@@ -27,10 +28,13 @@ export function Movimientos() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {ordenados.map((evento) => {
+            {ordenados.map((evento, indice) => {
               const lote = getLote(evento.loteId)
               return (
                 <tr key={evento.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 text-slate-400 tabular-nums">
+                    {indice + 1}
+                  </td>
                   <td className="px-4 py-3 text-slate-600">
                     {new Date(evento.fecha).toLocaleString('es')}
                   </td>

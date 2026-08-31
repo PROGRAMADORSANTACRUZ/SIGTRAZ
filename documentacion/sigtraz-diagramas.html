@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIGTRAZ - Diagramas de funcionamiento</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root { --tinta: #14532d; --borde: #cbd5e1; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 32px;
+      color: #0f172a;
+      background: #f8fafc;
+    }
+    .barra {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .barra h1 { font-size: 18px; margin: 0; color: var(--tinta); }
+    .barra p { margin: 2px 0 0; font-size: 12px; color: #64748b; }
+    button {
+      background: var(--tinta);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #166534; }
+    .diagrama {
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      page-break-inside: avoid;
+    }
+    .diagrama h2 {
+      font-size: 16px;
+      color: var(--tinta);
+      margin: 0 0 4px;
+    }
+    .diagrama .sub { font-size: 12px; color: #64748b; margin: 0 0 16px; }
+    .mermaid { display: flex; justify-content: center; }
+    .nota {
+      margin-top: 12px;
+      font-size: 11px;
+      color: #475569;
+      background: #f1f5f9;
+      border-left: 3px solid var(--tinta);
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .barra { display: none; }
+      .diagrama { break-inside: avoid; page-break-after: always; border: none; box-shadow: none; }
+      .diagrama:last-child { page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="barra">
+    <div>
+      <h1>SIGTRAZ &mdash; Funcionamiento completo</h1>
+      <p>Sistema de Gestion de Trazabilidad &middot; generado 2026-08-18</p>
+    </div>
+    <button onclick="window.print()">Descargar PDF</button>
+  </div>
+
+  <section class="diagrama">
+    <h2>1. Arquitectura del sistema</h2>
+    <p class="sub">Frontend, backend y base de datos</p>
+    <pre class="mermaid">
+flowchart LR
+    subgraph Cliente["Navegador (Chrome/Edge)"]
+        UI["Frontend React 18 + Vite + Tailwind<br/>Vite dev :5173"]
+        LS["localStorage<br/>token, PDV activo, agro_*"]
+        Serial["Web Serial API<br/>Bascula"]
+    end
+    subgraph Servidor["Backend Node.js + Express :4000"]
+        MW["Middleware<br/>requireAuth (JWT) + cargarScopePdv"]
+        Routes["Rutas /api/*"]
+        Scope["scope.ts<br/>aislamiento por punto de venta"]
+        Audit["auditoria.ts<br/>log de ediciones"]
+    end
+    DB[("PostgreSQL 17<br/>base: sigtraz")]
+    UI -- "fetch /api + Bearer token<br/>cabecera X-Punto-Venta" --> MW
+    UI <--> LS
+    Serial --> UI
+    MW --> Routes
+    Routes --> Scope
+    Routes --> Audit
+    Routes -- "query() parametrizada $1,$2" --> DB
+    Audit --> DB
+    </pre>
+  </section>
+
+  <section class="diagrama">
+    <h2>2. Flujo de trazabilidad (Carnes Santacruz)</h2>
+    <p class="sub">Entrada &rarr; Acondicionamiento &rarr; Salida &rarr; Devolucion</p>
+    <pre class="mermaid">
+flowchart TD
+    Prov["Proveedor<br/>(texto libre)"] --> Ent
+    subgraph Inv["Inventario y trazabilidad"]
+        Ent["ENTRADA<br/>Lote interno EN000001<br/>recepcion materia prima"]
+        Aco["ACONDICIONAMIENTO<br/>Lote AC000001<br/>conversion / empaque"]
+        Sal["SALIDA<br/>Lote SA000001<br/>despacho a destino"]
+        Dev["DEVOLUCION<br/>Lote DV000001"]
+    end
+    Ent -->|"lote alimenta"| Aco
+    Ent -->|"lote directo"| Sal
+    Aco -->|"producto resultante"| Sal
+    Sal -->|"retorno cliente"| Dev
+    Ent -.-> QR1["Etiqueta + QR<br/>/t/:id"]
+    Aco -.-> QR2["Etiqueta + QR<br/>/ta/:id"]
+    Sal -.-> QR3["Etiqueta + QR<br/>/ts/:id"]
+    QR1 --> Pub["Pagina publica trazabilidad<br/>(sin login)"]
+    QR2 --> Pub
+    QR3 --> Pub
+    Ent & Aco & Sal -->|"editar (PUT)"| Log["Log de ediciones<br/>ediciones_log ED000001"]
+    </pre>
+  </section>
+
+  <section class="diagrama">
+    <h2>3. Modelo de datos y aislamiento por punto de venta</h2>
+    <p class="sub">Multi-tenant logico por punto_venta_id</p>
+    <pre class="mermaid">
+erDiagram
+    USUARIOS ||--o{ USUARIOS_PUNTOS_VENTA : "tiene acceso"
+    PUNTOS_VENTA ||--o{ USUARIOS_PUNTOS_VENTA : "asignado a"
+    PUNTOS_VENTA ||--o{ ENTRADAS : "punto_venta_id"
+    PUNTOS_VENTA ||--o{ ACONDICIONAMIENTO : "punto_venta_id"
+    PUNTOS_VENTA ||--o{ SALIDAS : "punto_venta_id"
+    PUNTOS_VENTA ||--o{ DEVOLUCIONES : "punto_venta_id"
+    PUNTOS_VENTA ||--o{ DOCUMENTALES : "punto_venta_id"
+    PRODUCTOS ||--o{ ENTRADAS : "producto_id"
+    PRODUCTOS ||--o{ ACONDICIONAMIENTO : "producto_id"
+    PRODUCTOS ||--o{ SALIDAS : "producto_id"
+    FICHAS_TECNICAS ||--o{ ACONDICIONAMIENTO : "vida util"
+    USUARIOS {
+        int id PK
+        string email
+        string rol
+        string password_hash
+    }
+    PUNTOS_VENTA {
+        int id PK
+        string pdv
+        string prefijo
+    }
+    ENTRADAS {
+        int id PK
+        string lote_interno
+        string producto_id FK
+        int punto_venta_id FK
+        bool editado
+    }
+    DOCUMENTALES {
+        string nota "vehiculo, POES, LYD, higiene,"
+        string nota2 "agua, temperatura (10 tablas)"
+    }
+    </pre>
+    <p class="nota">DOCUMENTALES representa las 10 tablas de Gestion documental que comparten la columna punto_venta_id. Los catalogos (productos, proveedores, fichas, puntos_venta) NO estan segmentados por PDV.</p>
+  </section>
+
+  <section class="diagrama">
+    <h2>4. Empresas, modulos y navegacion</h2>
+    <p class="sub">Seleccion de empresa tras login</p>
+    <pre class="mermaid">
+flowchart TD
+    Login["/login"] --> Emp["/empresas<br/>selector 2x2"]
+    Emp --> Carnes["CARNES SANTACRUZ /"]
+    Emp --> Agro["AGROPECUARIA /agropecuaria"]
+    Emp --> Inv["INVERSIONES SERRANO<br/>(proximamente)"]
+    Emp --> Admin["ADMINISTRACION /admin"]
+    subgraph C["Carnes - con selector PDV"]
+        C1["Inventario y trazabilidad<br/>Entradas, Acondicionamiento, Salida<br/>Devolucion, Log de ediciones"]
+        C2["Gestion documental<br/>Insp. vehiculo, POES, LYD, Higiene<br/>Agua, Temperatura, Tipos"]
+        C3["Maestros<br/>Productos, Proveedores, Fichas<br/>Cuartos frios, Puntos venta, Personal"]
+    end
+    subgraph A["Agropecuaria - planta de proceso"]
+        A1["Ante Mortem"]
+        A2["Sacrificio, Refrigeracion<br/>Desposte, Despachos"]
+    end
+    subgraph AD["Administracion"]
+        D1["Usuarios"]
+        D2["Creditos<br/>Solicitud credito, Vinculacion clientes<br/>Registro proveedores"]
+    end
+    Carnes --> C
+    Agro --> A
+    Admin --> AD
+    </pre>
+  </section>
+
+  <section class="diagrama">
+    <h2>5. Flujo del proceso Agropecuaria</h2>
+    <p class="sub">Planta de sacrificio bovino</p>
+    <pre class="mermaid">
+flowchart LR
+    A["ANTE MORTEM<br/>inspeccion animal vivo<br/>F-CI-030"] --> B["SACRIFICIO<br/>lote de sacrificio"]
+    B --> C["REFRIGERACION<br/>canales en frio"]
+    C --> D["DESPOSTE<br/>corte y porcionado"]
+    D --> E["DESPACHOS<br/>a PDV Carnes y clientes"]
+    E -.->|"alimenta (pendiente)"| F["ENTRADAS<br/>Carnes Santacruz"]
+    A -.-> M["movimientosStore<br/>log CREO / EDITO"]
+    A -.-> X["Exportar Excel / PDF<br/>ExcelJS + logo"]
+    style A fill:#dcf3d0,stroke:#14532d
+    style E fill:#dcf3d0,stroke:#14532d
+    style F fill:#fef3c7,stroke:#92400e
+    </pre>
+  </section>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { htmlLabels: true } });
+  </script>
+</body>
+</html>

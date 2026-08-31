@@ -12,11 +12,54 @@ body {
   margin: 0;
   background-color: #f8fafc;
   color: #0f172a;
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Todo lo que el usuario digite se muestra en MAYUSCULAS, salvo campos
+   sensibles (contrasenas, correos) o los marcados con data-no-upper. */
+input[type='text'],
+input[type='search'],
+input[type='tel'],
+input[type='url'],
+input:not([type]),
+textarea {
+  text-transform: uppercase;
+}
+input[data-no-upper],
+textarea[data-no-upper] {
+  text-transform: none;
+}
+
+/* Muestra el mes seleccionado en MAYUSCULAS dentro del campo nativo. */
+input[type='month'].uppercase::-webkit-datetime-edit {
+  text-transform: uppercase;
+}
+/* Oculta el ano y el texto " de " para mostrar solo el nombre del mes. */
+input[type='month'].uppercase::-webkit-datetime-edit-year-field,
+input[type='month'].uppercase::-webkit-datetime-edit-text {
+  display: none;
 }
 
 /* Al imprimir, solo se muestra la etiqueta seleccionada. */
 @media print {
+  @page {
+    size: 100mm 50mm;
+    margin: 0;
+  }
   body * {
     visibility: hidden;
   }
@@ -28,8 +71,106 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+    width: 100mm;
+    height: 50mm;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 }
+
+/* ==========================================================================
+   MODO OSCURO
+   La app usa clases de color fijas de Tailwind (bg-white, text-slate-900, ...).
+   En lugar de anadir variantes dark: en las 60+ paginas, se reasignan aqui las
+   utilidades neutras mas usadas cuando <html> tiene la clase `dark`. Los colores
+   semanticos (verde/rojo/ambar/azul de badges y botones) se conservan como
+   acentos. El menu lateral ya es oscuro, no se toca.
+   ========================================================================== */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0b1120;
+  color: #e2e8f0;
+}
+
+/* Superficies (tarjetas, paneles, cabeceras de tabla) */
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+.dark .bg-slate-50,
+.dark .bg-gray-50 {
+  background-color: #1e293b !important;
+}
+.dark .bg-slate-100,
+.dark .bg-gray-100 {
+  background-color: #334155 !important;
+}
+
+/* Hover de filas / botones sutiles */
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-gray-50:hover {
+  background-color: #273449 !important;
+}
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: #3a4a63 !important;
+}
+
+/* Texto principal y secundario */
+.dark .text-slate-900,
+.dark .text-gray-900 {
+  color: #f1f5f9 !important;
+}
+.dark .text-slate-800,
+.dark .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+.dark .text-slate-700,
+.dark .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+.dark .text-slate-600,
+.dark .text-gray-600,
+.dark .text-slate-500,
+.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+/* Bordes y separadores */
+.dark .border-slate-200,
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+.dark .border-slate-300,
+.dark .border-gray-300 {
+  border-color: #475569 !important;
+}
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+/* Campos de formulario */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+/* Opciones de los <select> (menu desplegable nativo) */
+.dark option {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+

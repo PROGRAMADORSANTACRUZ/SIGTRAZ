@@ -36,18 +36,34 @@ CREATE TABLE IF NOT EXISTS entradas (
     fecha_vencimiento DATE,
     fecha_beneficio   DATE,
     fecha_empaque     DATE,
-    conservacion      VARCHAR(200),
-    instrucciones     VARCHAR(300),
-    empresa           VARCHAR(200)
+    lote_externo      VARCHAR(100),
+    veh_pisos         VARCHAR(2),
+    veh_paredes       VARCHAR(2),
+    veh_techos        VARCHAR(2),
+    veh_cortinas      VARCHAR(2),
+    organolepticas    VARCHAR(2),
+    temp_producto     NUMERIC(6,2),
+    temp_vehiculo     NUMERIC(6,2),
+    placa             VARCHAR(20)
 );
 
 -- Migracion: agrega columnas de etiqueta si la tabla ya existia.
 ALTER TABLE entradas ADD COLUMN IF NOT EXISTS fecha_vencimiento DATE;
 ALTER TABLE entradas ADD COLUMN IF NOT EXISTS fecha_beneficio   DATE;
 ALTER TABLE entradas ADD COLUMN IF NOT EXISTS fecha_empaque     DATE;
-ALTER TABLE entradas ADD COLUMN IF NOT EXISTS conservacion      VARCHAR(200);
-ALTER TABLE entradas ADD COLUMN IF NOT EXISTS instrucciones     VARCHAR(300);
-ALTER TABLE entradas ADD COLUMN IF NOT EXISTS empresa           VARCHAR(200);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS lote_externo      VARCHAR(100);
+-- Migracion: campos de etiqueta movidos a acondicionamiento.
+ALTER TABLE entradas DROP COLUMN IF EXISTS conservacion;
+ALTER TABLE entradas DROP COLUMN IF EXISTS instrucciones;
+ALTER TABLE entradas DROP COLUMN IF EXISTS empresa;
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS veh_pisos         VARCHAR(2);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS veh_paredes       VARCHAR(2);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS veh_techos        VARCHAR(2);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS veh_cortinas      VARCHAR(2);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS organolepticas    VARCHAR(2);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS temp_producto     NUMERIC(6,2);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS temp_vehiculo     NUMERIC(6,2);
+ALTER TABLE entradas ADD COLUMN IF NOT EXISTS placa             VARCHAR(20);
 
 CREATE TABLE IF NOT EXISTS eventos (
     id          SERIAL        PRIMARY KEY,
@@ -62,12 +78,141 @@ CREATE TABLE IF NOT EXISTS eventos (
 CREATE TABLE IF NOT EXISTS usuarios (
     id             SERIAL       PRIMARY KEY,
     nombre         VARCHAR(120) NOT NULL,
+    apellido       VARCHAR(120),
     email          VARCHAR(150) NOT NULL UNIQUE,
-    rol            VARCHAR(20)  NOT NULL
-                   CHECK (rol IN ('Administrador', 'Operador', 'Consulta')),
+    rol            VARCHAR(40)  NOT NULL
+                   CHECK (rol IN ('Administrador', 'Calidad',
+                                  'Auxiliar de calidad PDV',
+                                  'Auxiliar de calidad Planta', 'Medico Veterinario',
+                                  'Consultor')),
+    empresa        VARCHAR(60),
     activo         BOOLEAN      NOT NULL DEFAULT true,
     password_hash  VARCHAR(200),
     fecha_creacion TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+-- Migracion usuarios: nuevas columnas empresa/apellido y roles ampliados.
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS apellido VARCHAR(120);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS empresa  VARCHAR(60);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS modulos  JSONB DEFAULT '[]';
+ALTER TABLE usuarios ALTER COLUMN rol TYPE VARCHAR(40);
+-- Se quita la restriccion antigua ANTES de convertir los roles, de lo
+-- contrario el UPDATE violaria el CHECK previo (que no conoce los nuevos roles).
+ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;
+-- Convierte los roles antiguos a los nuevos antes de aplicar la restriccion.
+UPDATE usuarios SET rol = 'Auxiliar de calidad PDV' WHERE rol = 'Operador';
+UPDATE usuarios SET rol = 'Consultor'               WHERE rol = 'Consulta';
+ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check
+    CHECK (rol IN ('Administrador', 'Calidad', 'Auxiliar de calidad PDV',
+                   'Auxiliar de calidad Planta', 'Medico Veterinario',
+                   'Consultor'));
+-- Los usuarios existentes sin empresa quedan en Carnes Santacruz por defecto.
+UPDATE usuarios SET empresa = 'CARNES SANTACRUZ' WHERE empresa IS NULL;
+
+CREATE TABLE IF NOT EXISTS proveedores (
+    id             SERIAL       PRIMARY KEY,
+    nombre         VARCHAR(150) NOT NULL UNIQUE,
+    nit            VARCHAR(40),
+    contacto       VARCHAR(120),
+    telefono       VARCHAR(40),
+    email          VARCHAR(150),
+    direccion      VARCHAR(200),
+    activo         BOOLEAN      NOT NULL DEFAULT true,
+    fecha_creacion TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS fichas_tecnicas (
+    id              SERIAL        PRIMARY KEY,
+    nombre          VARCHAR(150)  NOT NULL UNIQUE,
+    ficha           TEXT          NOT NULL DEFAULT '',
+    dias_vencimiento INTEGER,
+    fecha_creacion  TIMESTAMP     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS cuartos_frios (
+    id               SERIAL        PRIMARY KEY,
+    nombre           VARCHAR(120)  NOT NULL UNIQUE,
+    tipo             VARCHAR(20)   NOT NULL DEFAULT 'Congelado'
+                     CHECK (tipo IN ('Congelado', 'Refrigerado')),
+    capacidad        NUMERIC(12,2),
+    capacidad_unidad VARCHAR(10)   NOT NULL DEFAULT 'kg',
+    ubicacion        VARCHAR(150),
+    responsable      VARCHAR(120),
+    estado           VARCHAR(20)   NOT NULL DEFAULT 'Activo'
+                     CHECK (estado IN ('Activo', 'Inactivo', 'Mantenimiento')),
+    fecha_creacion   TIMESTAMP     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS acciones (
+    id                SERIAL        PRIMARY KEY,
+    titulo            VARCHAR(200)  NOT NULL,
+    descripcion       TEXT,
+    prioridad         VARCHAR(20)   NOT NULL DEFAULT 'Media'
+                      CHECK (prioridad IN ('Baja', 'Media', 'Alta')),
+    estado            VARCHAR(20)   NOT NULL DEFAULT 'Pendiente'
+                      CHECK (estado IN ('Pendiente', 'En progreso', 'Completada')),
+    responsable       VARCHAR(120),
+    fecha_vencimiento DATE,
+    fecha_creacion    TIMESTAMP     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS activos (
+    id                SERIAL        PRIMARY KEY,
+    codigo            VARCHAR(60)   NOT NULL UNIQUE,
+    nombre            VARCHAR(150)  NOT NULL,
+    categoria         VARCHAR(80),
+    ubicacion         VARCHAR(150),
+    responsable       VARCHAR(120),
+    estado            VARCHAR(20)   NOT NULL DEFAULT 'Operativo'
+                      CHECK (estado IN ('Operativo', 'En mantenimiento', 'Fuera de servicio', 'Baja')),
+    fecha_adquisicion DATE,
+    fecha_creacion    TIMESTAMP     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS formaciones (
+    id             SERIAL        PRIMARY KEY,
+    titulo         VARCHAR(200)  NOT NULL,
+    tema           VARCHAR(120),
+    instructor     VARCHAR(120),
+    participante   VARCHAR(120),
+    estado         VARCHAR(20)   NOT NULL DEFAULT 'Programada'
+                   CHECK (estado IN ('Programada', 'En curso', 'Completada')),
+    fecha          DATE,
+    duracion_horas NUMERIC(6,2),
+    fecha_creacion TIMESTAMP     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS plantillas (
+    id             SERIAL        PRIMARY KEY,
+    nombre         VARCHAR(150)  NOT NULL UNIQUE,
+    descripcion    TEXT,
+    categoria      VARCHAR(80),
+    items          JSONB         NOT NULL DEFAULT '[]',
+    fecha_creacion TIMESTAMP     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS inspecciones (
+    id             SERIAL        PRIMARY KEY,
+    plantilla_id   INTEGER       REFERENCES plantillas (id) ON DELETE SET NULL,
+    inspector      VARCHAR(120),
+    ubicacion      VARCHAR(150),
+    estado         VARCHAR(20)   NOT NULL DEFAULT 'Pendiente'
+                   CHECK (estado IN ('Pendiente', 'En progreso', 'Completada')),
+    fecha          DATE,
+    respuestas     JSONB         NOT NULL DEFAULT '[]',
+    fecha_creacion TIMESTAMP     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS programas (
+    id             SERIAL        PRIMARY KEY,
+    nombre         VARCHAR(150)  NOT NULL,
+    plantilla_id   INTEGER       REFERENCES plantillas (id) ON DELETE SET NULL,
+    frecuencia     VARCHAR(20)   NOT NULL DEFAULT 'Mensual'
+                   CHECK (frecuencia IN ('Diaria', 'Semanal', 'Mensual', 'Anual')),
+    responsable    VARCHAR(120),
+    proxima_fecha  DATE,
+    activo         BOOLEAN       NOT NULL DEFAULT true,
+    fecha_creacion TIMESTAMP     NOT NULL DEFAULT now()
 );
 
 -- --------------------------- Semilla ---------------------------------
@@ -86,10 +231,3 @@ SELECT v.* FROM (VALUES
     (TIMESTAMP '2026-07-05 08:05:00', 'p3', 'L-HAR-2026-0021', 900::numeric, 'Molinos Union',        'Almacen Norte',   'Pedro Ruiz', 'GR-2026-0512', 'Pendiente inspeccion de calidad')
 ) AS v(fecha, producto_id, lote_codigo, cantidad, proveedor, almacen, responsable, documento, notas)
 WHERE NOT EXISTS (SELECT 1 FROM entradas);
-
-INSERT INTO usuarios (nombre, email, rol, activo) VALUES
-    ('Ana Rojas',  'ana.rojas@sigtraz.com',  'Administrador', true),
-    ('Luis Mora',  'luis.mora@sigtraz.com',  'Operador',      true),
-    ('Sofia Diaz', 'sofia.diaz@sigtraz.com', 'Operador',      true),
-    ('Pedro Ruiz', 'pedro.ruiz@sigtraz.com', 'Consulta',      false)
-ON CONFLICT (email) DO NOTHING;

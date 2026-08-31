@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
+import { RUTA_POR_EMPRESA } from '../types/trazabilidad'
 
 export function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  const destino =
-    (location.state as { from?: string } | null)?.from ?? '/'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,8 +17,14 @@ export function Login() {
     setError(null)
     setEnviando(true)
     try {
-      await login(email.trim(), password)
-      navigate(destino, { replace: true })
+      const usuario = await login(email.trim(), password)
+      // Al iniciar sesion siempre se entra al inicio (dashboard) de la
+      // empresa; un no-admin va directo, el admin elige en /empresas.
+      const rutaEmpresa =
+        usuario.rol !== 'Administrador' && usuario.empresa
+          ? RUTA_POR_EMPRESA[usuario.empresa] ?? null
+          : null
+      navigate(rutaEmpresa ?? '/empresas', { replace: true })
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'No se pudo iniciar sesion',

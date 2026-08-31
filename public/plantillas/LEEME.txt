@@ -1,0 +1,10 @@
+Guarda aqui la imagen del membrete del certificado con uno de estos nombres:
+
+  certificado-membrete.png   (recomendado)
+  certificado-membrete.jpg
+  membrete.png
+
+Es la hoja membreteada de Frigorifico Agropecuaria Santacruz (logo arriba,
+marca de agua al centro y pie de pagina con contacto e INVIMA).
+
+Se usa como fondo/marca de agua al exportar el certificado en Word y PDF.

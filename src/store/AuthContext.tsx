@@ -7,14 +7,15 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { api, getToken, setToken } from '../services/api'
+import { api, getToken, setToken, setPuntoVentaActivo } from '../services/api'
+import { precargarAgro } from '../services/agroSync'
 import type { Usuario } from '../types/trazabilidad'
 
 interface AuthContextValue {
   usuario: Usuario | null
   autenticado: boolean
   inicializando: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<Usuario>
   logout: () => void
 }
 
@@ -43,11 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const { token, usuario } = await api.login(email, password)
     setToken(token)
+    // Descarga los datos de Agropecuaria del servidor antes de navegar, para
+    // que las paginas los muestren ya sincronizados entre dispositivos.
+    await precargarAgro()
     setUsuario(usuario)
+    return usuario
   }, [])
 
   const logout = useCallback(() => {
     setToken(null)
+    setPuntoVentaActivo(null)
     setUsuario(null)
   }, [])
 
