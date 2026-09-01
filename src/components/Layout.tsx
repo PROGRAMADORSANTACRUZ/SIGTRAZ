@@ -222,7 +222,9 @@ export function Layout({
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 transform flex-col bg-slate-900 text-slate-100 transition-transform duration-200 ${
+        className={`fixed inset-y-0 left-0 z-40 w-60 shrink-0 transform flex-col bg-slate-900 text-slate-100 transition-transform duration-200 ${
+          esVistaDispositivo ? 'hidden' : 'flex'
+        } ${
           esPreview ? '' : 'md:static md:z-auto md:translate-x-0'
         } ${menuAbierto ? 'translate-x-0' : '-translate-x-full'}`}
       >
@@ -380,7 +382,10 @@ export function Layout({
         </div>
         {mostrarPuntoVenta && !esVistaDispositivo && <SelectorPuntoVenta />}
         {esVistaDispositivo ? (
-          <VistaDispositivo vista={vista as 'tablet' | 'celular'} />
+          <>
+            <BarraVista vista={vista} onCambiar={cambiarVista} />
+            <VistaDispositivo vista={vista as 'tablet' | 'celular'} />
+          </>
         ) : (
           <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
             {accesoDenegado ? <Navigate to={rutaHome} replace /> : <Outlet />}
@@ -511,6 +516,41 @@ function SelectorVista({
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+// Barra horizontal para cambiar de vista cuando se esta en modo dispositivo
+// (la barra lateral se oculta para dejar una sola columna).
+function BarraVista({
+  vista,
+  onCambiar,
+}: {
+  vista: Vista
+  onCambiar: (v: Vista) => void
+}) {
+  return (
+    <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 shadow-sm">
+      <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        Vista
+      </span>
+      {OPCIONES_VISTA.map((o) => (
+        <button
+          key={o.v}
+          type="button"
+          title={o.label}
+          aria-pressed={vista === o.v}
+          onClick={() => onCambiar(o.v)}
+          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            vista === o.v
+              ? 'bg-brand-600 text-white'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          {o.icono}
+          <span>{o.label}</span>
+        </button>
+      ))}
     </div>
   )
 }
