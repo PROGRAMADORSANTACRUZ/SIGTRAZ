@@ -190,6 +190,40 @@ export function Layout({
   }
   const esVistaDispositivo = !esPreview && vista !== 'escritorio'
 
+  // Vista que resalta el selector: dentro del marco (preview) se toma del
+  // parametro ?dispositivo; fuera, del estado real.
+  const vistaSelector: Vista = esPreview
+    ? ((new URLSearchParams(window.location.search).get('dispositivo') as Vista) ||
+      'escritorio')
+    : vista
+  // Desde el marco, el selector avisa a la ventana principal para cambiar la
+  // vista; fuera del marco, cambia el estado directamente.
+  const cambiarVistaGlobal = (v: Vista) => {
+    if (esPreview) {
+      window.parent?.postMessage(
+        { tipo: 'sigtraz-vista', vista: v },
+        window.location.origin,
+      )
+    } else {
+      cambiarVista(v)
+    }
+  }
+
+  // La ventana principal escucha los cambios de vista solicitados desde el marco.
+  useEffect(() => {
+    if (esPreview) return
+    const alMensaje = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      const d = e.data
+      if (d && d.tipo === 'sigtraz-vista' && typeof d.vista === 'string') {
+        cambiarVista(d.vista as Vista)
+      }
+    }
+    window.addEventListener('message', alMensaje)
+    return () => window.removeEventListener('message', alMensaje)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esPreview])
+
   // Dentro del iframe de vista previa: marca el <html> segun el dispositivo
   // para que el CSS ponga los formularios en cascada (menos columnas).
   useEffect(() => {
@@ -326,11 +360,9 @@ export function Layout({
           })}
         </nav>
 
-        {!esPreview && (
-          <div className="border-t border-slate-700 px-3 py-2">
-            <SelectorVista vista={vista} onCambiar={cambiarVista} />
-          </div>
-        )}
+        <div className="border-t border-slate-700 px-3 py-2">
+          <SelectorVista vista={vistaSelector} onCambiar={cambiarVistaGlobal} />
+        </div>
 
         <div className="border-t border-slate-700 px-3 py-2">
           <BotonTema
@@ -382,10 +414,7 @@ export function Layout({
         </div>
         {mostrarPuntoVenta && !esVistaDispositivo && <SelectorPuntoVenta />}
         {esVistaDispositivo ? (
-          <>
-            <BarraVista vista={vista} onCambiar={cambiarVista} />
-            <VistaDispositivo vista={vista as 'tablet' | 'celular'} />
-          </>
+          <VistaDispositivo vista={vista as 'tablet' | 'celular'} />
         ) : (
           <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
             {accesoDenegado ? <Navigate to={rutaHome} replace /> : <Outlet />}
@@ -516,41 +545,6 @@ function SelectorVista({
           </button>
         ))}
       </div>
-    </div>
-  )
-}
-
-// Barra horizontal para cambiar de vista cuando se esta en modo dispositivo
-// (la barra lateral se oculta para dejar una sola columna).
-function BarraVista({
-  vista,
-  onCambiar,
-}: {
-  vista: Vista
-  onCambiar: (v: Vista) => void
-}) {
-  return (
-    <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 shadow-sm">
-      <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-        Vista
-      </span>
-      {OPCIONES_VISTA.map((o) => (
-        <button
-          key={o.v}
-          type="button"
-          title={o.label}
-          aria-pressed={vista === o.v}
-          onClick={() => onCambiar(o.v)}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-            vista === o.v
-              ? 'bg-brand-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          {o.icono}
-          <span>{o.label}</span>
-        </button>
-      ))}
     </div>
   )
 }
