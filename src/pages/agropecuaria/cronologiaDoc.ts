@@ -45,7 +45,7 @@ export function documentoCronologia(
     ''
   const rel = archivoFirma(nombre)
   const firma = rel ? `${origin}${rel}` : ''
-  const nombreSeguro = nombre.replace(/[&<>]/g, (c) =>
+  const nombreSeguro = nombre.toUpperCase().replace(/[&<>]/g, (c) =>
     c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;',
   )
   return (
