@@ -7,8 +7,8 @@ import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
 
-const STORAGE_KEY = 'agro_cronologia'
-const ANTEMORTEM_KEY = 'agro_antemortem'
+const STORAGE_KEY = 'agro_cronologia_porcino'
+const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
 
 // Tabla de cronologia dentaria bovina: gancho -> dientes / edad.
 const TABLA_GANCHOS = [
@@ -52,7 +52,7 @@ const ETIQUETAS: Record<keyof Omit<RegistroCronologia, 'id'>, string> = {
   observaciones: 'Observaciones',
 }
 
-export function Cronologia() {
+export function CronologiaPorcino() {
   const [registros, setRegistros] = useState<RegistroCronologia[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
@@ -118,7 +118,7 @@ export function Cronologia() {
     return lista
   }, [registros, filtroMes, filtroDesde, filtroHasta, busqueda])
 
-  // Consecutivo visual CRB-N por orden de creacion del lote (fecha||lote).
+  // Consecutivo visual CRP-N por orden de creacion del lote (fecha||lote).
   const consecutivoPorClave = useMemo(() => {
     const orden: string[] = []
     const visto = new Set<string>()
@@ -315,7 +315,7 @@ export function Cronologia() {
     cambios?: { campo: string; antes: string; ahora: string }[],
   ) {
     agregarMovimiento({
-      modulo: 'CRONOLOGIA',
+      modulo: 'CRONOLOGIA PORCINO',
       accion,
       referencia,
       usuario: usuario?.nombre || usuario?.email || 'DESCONOCIDO',
@@ -429,14 +429,14 @@ export function Cronologia() {
     if (datos.length === 0) return
     const columnas = Object.keys(datos[0])
     const wb = new ExcelJS.Workbook()
-    const ws = wb.addWorksheet('Cronologia')
+    const ws = wb.addWorksheet('Cronologia Porcino')
     const borde = {
       top: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
       left: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
       bottom: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
       right: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
     }
-    const filaTitulo = ws.addRow(['CRONOLOGIA DENTARIA'])
+    const filaTitulo = ws.addRow(['CRONOLOGIA DENTARIA PORCINO'])
     ws.mergeCells(1, 1, 1, columnas.length)
     filaTitulo.getCell(1).font = { bold: true, size: 14 }
     filaTitulo.getCell(1).alignment = { horizontal: 'center' }
@@ -471,7 +471,7 @@ export function Cronologia() {
     })
     const enlace = document.createElement('a')
     enlace.href = URL.createObjectURL(blob)
-    enlace.download = 'cronologia.xlsx'
+    enlace.download = 'cronologia-porcino.xlsx'
     enlace.click()
     URL.revokeObjectURL(enlace.href)
   }
@@ -496,7 +496,7 @@ export function Cronologia() {
     const win = window.open('', '_blank')
     if (!win) return
     win.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cronologia</title><style>body{font-family:Arial,sans-serif;padding:16px;}h1{font-size:16px;}table{border-collapse:collapse;width:100%;font-size:9px;}th,td{border:1px solid #94a3b8;padding:4px;text-align:left;}th{background:#e2e8f0;}</style></head><body><h1>CRONOLOGIA DENTARIA</h1><table><thead><tr>${encabezado}</tr></thead><tbody>${cuerpo}</tbody></table><script>window.onload=function(){window.print();}</script></body></html>`,
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cronologia Porcino</title><style>body{font-family:Arial,sans-serif;padding:16px;}h1{font-size:16px;}table{border-collapse:collapse;width:100%;font-size:9px;}th,td{border:1px solid #94a3b8;padding:4px;text-align:left;}th{background:#e2e8f0;}</style></head><body><h1>CRONOLOGIA DENTARIA PORCINO</h1><table><thead><tr>${encabezado}</tr></thead><tbody>${cuerpo}</tbody></table><script>window.onload=function(){window.print();}</script></body></html>`,
     )
     win.document.close()
   }
@@ -506,7 +506,7 @@ export function Cronologia() {
       <header className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-slate-900">
-            Cronologia Bovino
+            Cronologia Porcino
           </h2>
           <p className="text-slate-500">
             Determinacion de edad por cronologia dentaria.
@@ -817,7 +817,7 @@ export function Cronologia() {
                       />
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-700">
-                      CRB-{consecutivoPorClave.get(g.clave) ?? '?'}
+                      CRP-{consecutivoPorClave.get(g.clave) ?? '?'}
                     </td>
                     <td className="px-4 py-3">{g.fecha}</td>
                     <td className="px-4 py-3">{g.loteSacrificio}</td>

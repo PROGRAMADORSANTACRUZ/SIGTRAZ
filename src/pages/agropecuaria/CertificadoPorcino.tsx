@@ -15,9 +15,9 @@ import {
 } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
 
-const STORAGE_KEY = 'agro_certificados'
+const STORAGE_KEY = 'agro_certificados_porcino'
 const CLIENTES_KEY = 'agro_clientes'
-const CURVA_KEY = 'agro_curva_canales'
+const CURVA_KEY = 'agro_curva_canales_porcino'
 // Plantilla Word (.docx) con la marca de agua real en el encabezado y
 // marcadores {numero} {fecha} {dirigido} {cuerpo} {firmante} {cargo}.
 const PLANTILLA_WORD = '/plantillas/certificado-plantilla.docx'
@@ -144,14 +144,14 @@ const formVacio = (): Omit<Certificado, 'id'> => ({
   sucursal: '',
 })
 
-// Numero consecutivo por regla: ASC-1, ASC-2, ...
+// Numero consecutivo por regla: ASP-1, ASP-2, ...
 function siguienteNumero(certs: Certificado[]): string {
   let max = 0
   certs.forEach((c) => {
-    const m = /ASC-(\d+)/i.exec(c.numero || '')
+    const m = /ASP-(\d+)/i.exec(c.numero || '')
     if (m) max = Math.max(max, parseInt(m[1], 10))
   })
-  return `ASC-${max + 1}`
+  return `ASP-${max + 1}`
 }
 
 function formatearFecha(iso: string): string {
@@ -186,7 +186,7 @@ function infoGuiaAnteMortem(lote: string, fecha: string) {
   if (!l) return null
   let ante: Array<Record<string, unknown>> = []
   try {
-    ante = JSON.parse(localStorage.getItem('agro_antemortem') || '[]')
+    ante = JSON.parse(localStorage.getItem('agro_antemortem_porcino') || '[]')
   } catch {
     ante = []
   }
@@ -199,10 +199,9 @@ function infoGuiaAnteMortem(lote: string, fecha: string) {
     ante.find((r) => String(r.loteSacrificio || '').trim().toUpperCase() === l)
   if (!reg) return null
   const total =
-    (Number(reg.novillo) || 0) +
-    (Number(reg.vaca) || 0) +
-    (Number(reg.toro) || 0) +
-    (Number(reg.bufalo) || 0)
+    (Number(reg.marranas) || 0) +
+    (Number(reg.machos) || 0) +
+    (Number(reg.hembras) || 0)
   return {
     guiaSanitaria: String(reg.numeroGuia || ''),
     granja: String(reg.predio || ''),
@@ -632,7 +631,7 @@ ${almacenHTML}
 </body></html>`
 }
 
-export function Certificado() {
+export function CertificadoPorcino() {
   const predios = useCatalogo('Predios', prediosSeed)
   const municipios = useCatalogo('Municipios', municipiosSeed)
   const departamentos = useCatalogo('Departamentos', departamentosSeed)
@@ -692,7 +691,7 @@ export function Certificado() {
     if (!form.dirigidoA) return []
     try {
       const lista = JSON.parse(
-        localStorage.getItem('agro_antemortem') || '[]',
+        localStorage.getItem('agro_antemortem_porcino') || '[]',
       ) as { firmador?: string; loteSacrificio?: string }[]
       const usados = new Set<string>()
       certificados.forEach((c) => {
@@ -774,7 +773,7 @@ export function Certificado() {
   > {
     let pos: { fecha?: string; loteSacrificio?: string }[] = []
     try {
-      pos = JSON.parse(localStorage.getItem('agro_posmortem') || '[]')
+      pos = JSON.parse(localStorage.getItem('agro_posmortem_porcino') || '[]')
     } catch {
       pos = []
     }
@@ -941,7 +940,7 @@ export function Certificado() {
 
   function registrar(accion: 'CREÓ' | 'EDITÓ' | 'ELIMINÓ', referencia: string) {
     agregarMovimiento({
-      modulo: 'CERTIFICADO',
+      modulo: 'CERTIFICADO PORCINO',
       accion,
       referencia,
       usuario: usuario?.nombre || usuario?.email || 'DESCONOCIDO',
@@ -1115,7 +1114,7 @@ export function Certificado() {
       <header className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-slate-900">
-            Certificado de Calidad Bovino
+            Certificado de Calidad Porcino
           </h2>
           <p className="text-slate-500">
             Certificado de la inspeccion del proceso.

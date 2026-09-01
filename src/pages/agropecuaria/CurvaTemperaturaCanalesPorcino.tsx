@@ -7,8 +7,8 @@ import { api } from '../../services/api'
 import { cuartosFriosSeed } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
 
-const STORAGE_KEY = 'agro_curva_canales'
-const ANTEMORTEM_KEY = 'agro_antemortem'
+const STORAGE_KEY = 'agro_curva_canales_porcino'
+const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
 
 interface AnteMortemLite {
   fechaIngreso: string
@@ -84,10 +84,10 @@ function siguienteConsecutivo(ordenes: Orden[]): string {
     const n = parseInt((o.consecutivo || '').replace(/\D/g, ''), 10)
     return Number.isFinite(n) && n > m ? n : m
   }, 0)
-  return `CTB-${max + 1}`
+  return `CTP-${max + 1}`
 }
 
-export function CurvaTemperaturaCanales() {
+export function CurvaTemperaturaCanalesPorcino() {
   const cuartosFrios = useCatalogo('Cuartos fríos', cuartosFriosSeed)
   const [ordenes, setOrdenes] = useState<Orden[]>(() => {
     try {
@@ -273,7 +273,7 @@ export function CurvaTemperaturaCanales() {
 
   function registrar(accion: 'CREÓ' | 'EDITÓ' | 'ELIMINÓ') {
     agregarMovimiento({
-      modulo: 'CURVA CANALES',
+      modulo: 'CURVA CANALES PORCINO',
       accion,
       referencia: `${form.consecutivo} - ${fechaCorta(form.fecha)}`,
       usuario: usuario?.nombre || usuario?.email || 'DESCONOCIDO',
@@ -290,7 +290,7 @@ export function CurvaTemperaturaCanales() {
       <header className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-slate-900">
-            Curva de temperatura de canales Bovino
+            Curva de temperatura de canales Porcino
           </h2>
           <p className="text-slate-500">
             Registro de la curva de temperatura de canales.

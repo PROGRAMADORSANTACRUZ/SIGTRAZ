@@ -125,7 +125,7 @@ export function construirContenido(d: DatosContenido): string {
   )
 }
 
-const STORAGE_KEY = 'agro_certificados_decomiso'
+const STORAGE_KEY = 'agro_certificados_decomiso_porcino'
 
 let certificados: CertificadoDecomiso[] = leerInicial()
 const listeners = new Set<() => void>()
@@ -220,7 +220,7 @@ export function useCertificados() {
   )
 }
 
-// Formatea el consecutivo como CDB-1.
+// Formatea el consecutivo como CDP-1.
 export function formatoConsecutivo(n: number): string {
-  return `CDB-${n}`
+  return `CDP-${n}`
 }

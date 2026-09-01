@@ -6,54 +6,85 @@ import { ModalEliminar } from '../../components/ModalEliminar'
 import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
+import { useCatalogo } from './catalogosStore'
+import { organosSeed, patologiasSeed } from './datosCatalogos'
+import {
+  agregarCertificado,
+  construirContenido,
+  formatoConsecutivo,
+  mesDe,
+  siguienteConsecutivo,
+} from './certificadosPorcinoStore'
 
-const STORAGE_KEY = 'agro_cronologia'
-const ANTEMORTEM_KEY = 'agro_antemortem'
+const STORAGE_KEY = 'agro_posmortem_porcino'
+const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
 
-// Tabla de cronologia dentaria bovina: gancho -> dientes / edad.
-const TABLA_GANCHOS = [
-  { gancho: '1', dientes: 2, edadMes: '18-22', edadAnio: '1.5-2.0' },
-  { gancho: '2', dientes: 4, edadMes: '24-27', edadAnio: '2-2.5' },
-  { gancho: '3', dientes: 6, edadMes: '30-38', edadAnio: '2.5-3' },
-  { gancho: '4', dientes: 8, edadMes: '48', edadAnio: '>4' },
+const DICTAMENES = [
+  'DECOMISO',
+  'DECOMISO PARCIAL',
+  'APTO PARA CONSUMO',
+  'RETENIDO',
 ]
 
-interface RegistroCronologia {
+const OBSERVACIONES_OPC = ['SIN OBSERVACIONES', 'BUFALOS', 'SACRIFICIO DE EMERGENCIA']
+
+interface RegistroPosMortem {
   id: string
   fecha: string
-  firmador: string
+  horaLlegada: string
+  horaSacrificio: string
+  tiempoReposo: string
+  cliente: string
   loteSacrificio: string
+  organo: string
+  cantidad: string
   gancho: string
-  dientes: string
-  edadMes: string
-  edadAnio: string
-  observaciones: string
+  granja: string
+  patologia: string
+  dictamen: string
+  origen: string
+  observacion: string
+  firma: string
 }
 
-const formVacio = (): Omit<RegistroCronologia, 'id'> => ({
+const formVacio = (): Omit<RegistroPosMortem, 'id'> => ({
   fecha: '',
-  firmador: '',
+  horaLlegada: '',
+  horaSacrificio: '',
+  tiempoReposo: '',
+  cliente: '',
   loteSacrificio: '',
+  organo: '',
+  cantidad: '',
   gancho: '',
-  dientes: '',
-  edadMes: '',
-  edadAnio: '',
-  observaciones: '',
+  granja: '',
+  patologia: '',
+  dictamen: '',
+  origen: '',
+  observacion: '',
+  firma: '',
 })
 
-const ETIQUETAS: Record<keyof Omit<RegistroCronologia, 'id'>, string> = {
-  fecha: 'Fecha',
-  firmador: 'Firmador',
-  loteSacrificio: 'Lote de sacrificio',
+const ETIQUETAS: Record<keyof Omit<RegistroPosMortem, 'id'>, string> = {
+  fecha: 'Fecha de sacrificio',
+  horaLlegada: 'Hora llegada',
+  horaSacrificio: 'Hora de sacrificio',
+  tiempoReposo: 'Tiempo de reposo',
+  cliente: 'Cliente',
+  loteSacrificio: 'Lote',
+  organo: 'Organo',
+  cantidad: 'Cantidad',
   gancho: 'Gancho',
-  dientes: 'N dientes',
-  edadMes: 'Edad mes',
-  edadAnio: 'Edad aprox año',
-  observaciones: 'Observaciones',
+  granja: 'Granja',
+  patologia: 'Patologia',
+  dictamen: 'Dictamen',
+  origen: 'Origen',
+  observacion: 'Observacion',
+  firma: 'Firma',
 }
 
-export function Cronologia() {
-  const [registros, setRegistros] = useState<RegistroCronologia[]>(() => {
+export function PosMortemPorcino() {
+  const [registros, setRegistros] = useState<RegistroPosMortem[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
     } catch {
@@ -62,13 +93,17 @@ export function Cronologia() {
   })
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState(formVacio)
-  const [lineas, setLineas] = useState<RegistroCronologia[]>([])
+  const [lineas, setLineas] = useState<RegistroPosMortem[]>([])
   const [editandoGrupo, setEditandoGrupo] = useState<string | null>(null)
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
   const [mostrarEliminar, setMostrarEliminar] = useState(false)
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [certificadoItems, setCertificadoItems] = useState<
+    RegistroPosMortem[] | null
+  >(null)
+  const [avisoCert, setAvisoCert] = useState<string | null>(null)
   // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
   const [filtroMes, setFiltroMes] = useState(() =>
     new Date().toLocaleDateString('en-CA').slice(0, 7),
@@ -77,15 +112,24 @@ export function Cronologia() {
   const [filtroHasta, setFiltroHasta] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const { usuario } = useAuth()
+  const organos = useCatalogo('Organos', organosSeed)
+  const patologias = useCatalogo('Patologias', patologiasSeed)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(registros))
   }, [registros])
 
-  // Una fila por lote/dia. Cada grupo agrupa todos sus ganchos.
+  // El aviso del certificado desaparece solo tras unos segundos.
+  useEffect(() => {
+    if (!avisoCert) return
+    const t = setTimeout(() => setAvisoCert(null), 4000)
+    return () => clearTimeout(t)
+  }, [avisoCert])
+
+  // Una fila por lote/dia. Cada grupo agrupa todos sus organos/hallazgos.
   const grupos = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
-    const map = new Map<string, RegistroCronologia[]>()
+    const map = new Map<string, RegistroPosMortem[]>()
     registros.forEach((r) => {
       const f = r.fecha // YYYY-MM-DD
       if (filtroMes && !f.startsWith(filtroMes)) return
@@ -100,16 +144,17 @@ export function Cronologia() {
       clave,
       fecha: items[0].fecha,
       loteSacrificio: items[0].loteSacrificio,
-      items: [...items].sort((a, b) => Number(a.gancho) - Number(b.gancho)),
+      cliente: items[0].cliente,
+      items,
     }))
     if (texto) {
       lista = lista.filter(
         (g) =>
-          [g.fecha, g.loteSacrificio].some((v) =>
+          [g.fecha, g.loteSacrificio, g.cliente].some((v) =>
             (v || '').toLowerCase().includes(texto),
           ) ||
           g.items.some((i) =>
-            [i.gancho, i.observaciones].some((v) =>
+            [i.organo, i.patologia, i.dictamen].some((v) =>
               (v || '').toLowerCase().includes(texto),
             ),
           ),
@@ -118,7 +163,7 @@ export function Cronologia() {
     return lista
   }, [registros, filtroMes, filtroDesde, filtroHasta, busqueda])
 
-  // Consecutivo visual CRB-N por orden de creacion del lote (fecha||lote).
+  // Consecutivo visual PMP-N por orden de creacion del lote (fecha||lote).
   const consecutivoPorClave = useMemo(() => {
     const orden: string[] = []
     const visto = new Set<string>()
@@ -133,135 +178,115 @@ export function Cronologia() {
     orden.forEach((k, i) => m.set(k, i + 1))
     return m
   }, [registros])
-  const firmadores = useMemo(() => {
+
+  // Registros de Ante Mortem para autocompletar y filtrar por dia.
+  const anteRegistros = useMemo<Record<string, string>[]>(() => {
     try {
-      const ante: { fechaIngreso?: string; firmador?: string }[] = JSON.parse(
-        localStorage.getItem(ANTEMORTEM_KEY) || '[]',
-      )
-      return [
-        ...new Set(
-          ante
-            .filter((r) => (r.fechaIngreso || '') === form.fecha)
-            .map((r) => (r.firmador || '').trim())
-            .filter((v) => v !== ''),
-        ),
-      ]
+      return JSON.parse(localStorage.getItem(ANTEMORTEM_KEY) || '[]')
     } catch {
       return []
     }
-  }, [form.fecha, mostrarForm])
+  }, [mostrarForm])
 
-  // Lotes de Ante Mortem del firmador seleccionado, solo de ese dia. Se excluyen
-  // los lotes que ya tienen documento creado (salvo el que se esta editando).
+  // Clientes (firmadores) de Ante Mortem, solo del dia seleccionado.
+  const firmadores = useMemo(
+    () => [
+      ...new Set(
+        anteRegistros
+          .filter((r) => (r.fechaIngreso || '') === form.fecha)
+          .map((r) => (r.firmador || '').trim())
+          .filter((v) => v !== ''),
+      ),
+    ],
+    [anteRegistros, form.fecha],
+  )
+
+  // Lotes del cliente seleccionado, solo de ese dia. Se excluyen los lotes que
+  // ya tienen documento creado (salvo el que se esta editando en el formulario).
   const lotes = useMemo(() => {
-    try {
-      const ante: {
-        fechaIngreso?: string
-        firmador?: string
-        loteSacrificio?: string
-      }[] = JSON.parse(localStorage.getItem(ANTEMORTEM_KEY) || '[]')
-      const usados = new Set(
-        registros
-          .filter((r) => (r.fecha || '') === form.fecha)
+    const usados = new Set(
+      registros
+        .filter((r) => (r.fecha || '') === form.fecha)
+        .map((r) => (r.loteSacrificio || '').trim())
+        .filter(Boolean),
+    )
+    const actual = (form.loteSacrificio || '').trim()
+    return [
+      ...new Set(
+        anteRegistros
+          .filter(
+            (r) =>
+              (r.fechaIngreso || '') === form.fecha &&
+              (!form.cliente || (r.firmador || '').trim() === form.cliente),
+          )
           .map((r) => (r.loteSacrificio || '').trim())
-          .filter(Boolean),
-      )
-      const actual = (form.loteSacrificio || '').trim()
-      return [
-        ...new Set(
-          ante
-            .filter(
-              (r) =>
-                (r.fechaIngreso || '') === form.fecha &&
-                (!form.firmador ||
-                  (r.firmador || '').trim() === form.firmador),
-            )
-            .map((r) => (r.loteSacrificio || '').trim())
-            .filter((v) => v !== '' && (v === actual || !usados.has(v))),
-        ),
-      ]
-    } catch {
-      return []
-    }
-  }, [form.fecha, form.firmador, form.loteSacrificio, mostrarForm, registros])
+          .filter((v) => v !== '' && (v === actual || !usados.has(v))),
+      ),
+    ]
+  }, [anteRegistros, form.fecha, form.cliente, form.loteSacrificio, registros])
 
-  function actualizar<K extends keyof Omit<RegistroCronologia, 'id'>>(
+  function actualizar<K extends keyof Omit<RegistroPosMortem, 'id'>>(
     campo: K,
-    valor: Omit<RegistroCronologia, 'id'>[K],
+    valor: Omit<RegistroPosMortem, 'id'>[K],
   ) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
   }
 
-  // Al elegir N dientes autocompleta edad.
-  function elegirDientes(d: string) {
-    const fila = TABLA_GANCHOS.find((f) => String(f.dientes) === d)
-    setForm((prev) => ({
-      ...prev,
-      dientes: d,
-      edadMes: fila ? fila.edadMes : '',
-      edadAnio: fila ? fila.edadAnio : '',
-    }))
+  // Al elegir el lote se traen los datos de cabecera desde Ante Mortem.
+  function elegirLote(lote: string) {
+    const l = lote.trim()
+    const ante =
+      anteRegistros.find(
+        (r) =>
+          (r.loteSacrificio || '').trim() === l &&
+          (r.fechaIngreso || '') === form.fecha,
+      ) || anteRegistros.find((r) => (r.loteSacrificio || '').trim() === l)
+    setForm((prev) => {
+      if (!ante) return { ...prev, loteSacrificio: lote }
+      const origen = [ante.municipio, ante.departamento]
+        .map((v) => (v || '').trim())
+        .filter(Boolean)
+        .join('-')
+      return {
+        ...prev,
+        loteSacrificio: lote,
+        horaLlegada: ante.horaIngreso || prev.horaLlegada,
+        horaSacrificio: ante.horaBeneficio || prev.horaSacrificio,
+        tiempoReposo: ante.tiempoDescanso || prev.tiempoReposo,
+        granja: ante.predio || prev.granja,
+        origen: origen || prev.origen,
+      }
+    })
   }
 
   function camposFaltantes() {
     const faltan: string[] = []
     if (!form.fecha.trim()) faltan.push(ETIQUETAS.fecha)
     if (!form.loteSacrificio.trim()) faltan.push(ETIQUETAS.loteSacrificio)
-    if (!form.gancho.trim()) faltan.push(ETIQUETAS.gancho)
-    if (!form.dientes.trim()) faltan.push(ETIQUETAS.dientes)
+    if (!form.organo.trim()) faltan.push(ETIQUETAS.organo)
     return faltan
   }
 
-  // Un gancho no se puede repetir en el mismo lote/dia.
-  function ganchoRepetido(gancho: string, fecha: string, lote: string) {
-    const g = gancho.trim()
-    if (!g) return false
-    const enLineas = lineas.some((l) => l.gancho.trim() === g)
-    const enRegistros = registros.some(
-      (r) =>
-        r.fecha === fecha &&
-        r.loteSacrificio === lote &&
-        r.gancho.trim() === g &&
-        `${r.fecha}||${r.loteSacrificio}` !== editandoGrupo,
-    )
-    return enLineas || enRegistros
-  }
-
-  // El gancho es un consecutivo continuo del dia, sin importar el lote.
-  function siguienteGanchoGlobal(
-    fecha: string,
-    lins: RegistroCronologia[] = lineas,
-  ) {
-    const nums = [...registros.filter((r) => r.fecha === fecha), ...lins]
-      .map((r) => Number(r.gancho))
-      .filter((n) => Number.isFinite(n))
-    const max = nums.length ? Math.max(...nums) : 0
-    return String(max + 1)
-  }
-
   // Registra la linea actual abajo y prepara la siguiente conservando
-  // fecha y lote, con el gancho consecutivo.
+  // los datos de cabecera del lote.
   function agregarLinea() {
     const faltan = camposFaltantes()
     if (faltan.length > 0) {
       setError(`Faltan campos: ${faltan.join(', ')}`)
       return
     }
-    if (ganchoRepetido(form.gancho, form.fecha, form.loteSacrificio)) {
-      setError(`El gancho ${form.gancho} ya existe para ese lote/dia.`)
-      return
-    }
     setLineas((prev) => [...prev, { ...form, id: crypto.randomUUID() }])
-    const n = Number(form.gancho)
-    const siguienteGancho = Number.isFinite(n) && form.gancho.trim() !== ''
-      ? String(n + 1)
-      : ''
     setForm((prev) => ({
       ...formVacio(),
       fecha: prev.fecha,
-      firmador: prev.firmador,
+      horaLlegada: prev.horaLlegada,
+      horaSacrificio: prev.horaSacrificio,
+      tiempoReposo: prev.tiempoReposo,
+      cliente: prev.cliente,
       loteSacrificio: prev.loteSacrificio,
-      gancho: siguienteGancho,
+      granja: prev.granja,
+      origen: prev.origen,
+      firma: prev.firma,
     }))
     setError('')
   }
@@ -272,37 +297,32 @@ export function Cronologia() {
 
   function abrirNuevo() {
     const hoy = new Date().toLocaleDateString('en-CA')
-    setForm({
-      ...formVacio(),
-      fecha: hoy,
-      gancho: siguienteGanchoGlobal(hoy, []),
-    })
+    setForm({ ...formVacio(), fecha: hoy })
     setLineas([])
     setEditandoGrupo(null)
     setError('')
     setMostrarForm(true)
   }
 
-  // Edita el lote completo: carga todos sus ganchos como lineas.
+  // Edita el lote completo: carga todos sus organos como lineas.
   function editarGrupo(clave: string) {
     const items = registros.filter(
       (r) => `${r.fecha}||${r.loteSacrificio}` === clave,
     )
     if (items.length === 0) return
-    const ordenados = [...items].sort(
-      (a, b) => Number(a.gancho) - Number(b.gancho),
-    )
-    setLineas(ordenados)
-    const ultimo = ordenados[ordenados.length - 1]
-    const n = Number(ultimo.gancho)
-    const siguiente =
-      Number.isFinite(n) && ultimo.gancho.trim() !== '' ? String(n + 1) : ''
+    setLineas(items)
+    const base = items[0]
     setForm({
       ...formVacio(),
-      fecha: ordenados[0].fecha,
-      firmador: ordenados[0].firmador || '',
-      loteSacrificio: ordenados[0].loteSacrificio,
-      gancho: siguiente,
+      fecha: base.fecha,
+      horaLlegada: base.horaLlegada,
+      horaSacrificio: base.horaSacrificio,
+      tiempoReposo: base.tiempoReposo,
+      cliente: base.cliente,
+      loteSacrificio: base.loteSacrificio,
+      granja: base.granja,
+      origen: base.origen,
+      firma: base.firma,
     })
     setEditandoGrupo(clave)
     setError('')
@@ -312,29 +332,23 @@ export function Cronologia() {
   function registrarMovimiento(
     accion: 'CREÓ' | 'EDITÓ' | 'ELIMINÓ',
     referencia: string,
-    cambios?: { campo: string; antes: string; ahora: string }[],
   ) {
     agregarMovimiento({
-      modulo: 'CRONOLOGIA',
+      modulo: 'POS MORTEM PORCINO',
       accion,
       referencia,
       usuario: usuario?.nombre || usuario?.email || 'DESCONOCIDO',
-      cambios: cambios && cambios.length > 0 ? cambios : undefined,
     })
   }
 
   function guardar(e: React.FormEvent) {
     e.preventDefault()
-    // Reune las lineas del lote + la linea actual (si tiene datos).
+    // Reune las lineas del lote + la linea actual (si tiene organo).
     const pendientes = [...lineas]
-    if (form.dientes.trim()) {
+    if (form.organo.trim()) {
       const faltan = camposFaltantes()
       if (faltan.length > 0) {
         setError(`Faltan campos: ${faltan.join(', ')}`)
-        return
-      }
-      if (ganchoRepetido(form.gancho, form.fecha, form.loteSacrificio)) {
-        setError(`El gancho ${form.gancho} ya existe para ese lote/dia.`)
         return
       }
       pendientes.push({ ...form, id: crypto.randomUUID() })
@@ -344,10 +358,9 @@ export function Cronologia() {
       return
     }
     const refLote = pendientes[0].loteSacrificio || 'SIN LOTE'
-    const referencia = `${refLote} · ${pendientes.length} GANCHO(S)`
+    const referencia = `${refLote} · ${pendientes.length} ORGANO(S)`
 
     if (editandoGrupo) {
-      // Reemplaza todo el grupo (lote/dia) por las lineas actuales.
       setRegistros((prev) => [
         ...pendientes,
         ...prev.filter(
@@ -363,6 +376,11 @@ export function Cronologia() {
     setEditandoGrupo(null)
     setForm(formVacio())
     setLineas([])
+    // Si hubo decomiso o decomiso parcial se ofrece el certificado.
+    const decomisos = pendientes.filter((p) =>
+      p.dictamen.trim().toUpperCase().startsWith('DECOMISO'),
+    )
+    if (decomisos.length > 0) setCertificadoItems(decomisos)
   }
 
   function alternarSeleccion(clave: string) {
@@ -392,9 +410,7 @@ export function Cronologia() {
         .filter((g) => claves.has(g.clave))
         .map((g) => `${g.loteSacrificio || 'SIN LOTE'} (${g.fecha})`)
       setRegistros((prev) =>
-        prev.filter(
-          (r) => !claves.has(`${r.fecha}||${r.loteSacrificio}`),
-        ),
+        prev.filter((r) => !claves.has(`${r.fecha}||${r.loteSacrificio}`)),
       )
       referencias.forEach((ref) => registrarMovimiento('ELIMINÓ', ref))
       setSeleccionados(new Set())
@@ -408,18 +424,27 @@ export function Cronologia() {
     }
   }
 
-  // Aplana los ganchos de los grupos seleccionados.
+  // Aplana los organos de los grupos seleccionados.
   function registrosExportar() {
     const fuente = grupos.filter((g) => seleccionados.has(g.clave))
     return fuente.flatMap((g) =>
       g.items.map((r) => ({
-        FECHA: r.fecha,
-        'LOTE DE SACRIFICIO': r.loteSacrificio,
+        'FECHA DE SACRIFICIO': r.fecha,
+        MES: mesDe(r.fecha),
+        'HORA LLEGADA': r.horaLlegada,
+        'HORA DE SACRIFICIO': r.horaSacrificio,
+        'TIEMPO DE REPOSO': r.tiempoReposo,
+        CLIENTE: r.cliente,
+        LOTE: r.loteSacrificio,
+        ORGANO: r.organo,
+        CANTIDAD: r.cantidad,
         GANCHO: r.gancho,
-        'N DIENTES': r.dientes,
-        'EDAD MES': r.edadMes,
-        'EDAD APROX AÑO': r.edadAnio,
-        OBSERVACIONES: r.observaciones,
+        GRANJA: r.granja,
+        PATOLOGIA: r.patologia,
+        DICTAMEN: r.dictamen,
+        ORIGEN: r.origen,
+        OBSERVACION: r.observacion,
+        FIRMA: r.firma,
       })),
     )
   }
@@ -429,14 +454,14 @@ export function Cronologia() {
     if (datos.length === 0) return
     const columnas = Object.keys(datos[0])
     const wb = new ExcelJS.Workbook()
-    const ws = wb.addWorksheet('Cronologia')
+    const ws = wb.addWorksheet('Pos Mortem Porcino')
     const borde = {
       top: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
       left: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
       bottom: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
       right: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
     }
-    const filaTitulo = ws.addRow(['CRONOLOGIA DENTARIA'])
+    const filaTitulo = ws.addRow(['INSPECCION POST MORTEM PORCINOS'])
     ws.mergeCells(1, 1, 1, columnas.length)
     filaTitulo.getCell(1).font = { bold: true, size: 14 }
     filaTitulo.getCell(1).alignment = { horizontal: 'center' }
@@ -471,7 +496,7 @@ export function Cronologia() {
     })
     const enlace = document.createElement('a')
     enlace.href = URL.createObjectURL(blob)
-    enlace.download = 'cronologia.xlsx'
+    enlace.download = 'pos-mortem-porcino.xlsx'
     enlace.click()
     URL.revokeObjectURL(enlace.href)
   }
@@ -496,9 +521,62 @@ export function Cronologia() {
     const win = window.open('', '_blank')
     if (!win) return
     win.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cronologia</title><style>body{font-family:Arial,sans-serif;padding:16px;}h1{font-size:16px;}table{border-collapse:collapse;width:100%;font-size:9px;}th,td{border:1px solid #94a3b8;padding:4px;text-align:left;}th{background:#e2e8f0;}</style></head><body><h1>CRONOLOGIA DENTARIA</h1><table><thead><tr>${encabezado}</tr></thead><tbody>${cuerpo}</tbody></table><script>window.onload=function(){window.print();}</script></body></html>`,
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pos Mortem Porcino</title><style>body{font-family:Arial,sans-serif;padding:16px;}h1{font-size:16px;}table{border-collapse:collapse;width:100%;font-size:9px;}th,td{border:1px solid #94a3b8;padding:4px;text-align:left;}th{background:#e2e8f0;}</style></head><body><h1>INSPECCION POST MORTEM PORCINOS</h1><table><thead><tr>${encabezado}</tr></thead><tbody>${cuerpo}</tbody></table><script>window.onload=function(){window.print();}</script></body></html>`,
     )
     win.document.close()
+  }
+
+  // Genera el certificado de decomiso (PDF via impresion) con los hallazgos.
+  function generarCertificado(items: RegistroPosMortem[]) {
+    if (items.length === 0) return
+    const base = items[0]
+    const loteBase = (base.loteSacrificio || '').trim()
+    const ante =
+      anteRegistros.find(
+        (r) =>
+          (r.loteSacrificio || '').trim() === loteBase &&
+          (r.fechaIngreso || '') === base.fecha,
+      ) || anteRegistros.find((r) => (r.loteSacrificio || '').trim() === loteBase)
+    const num = (v: unknown) => Number(v) || 0
+    const total = ante
+      ? num(ante.marranas) + num(ante.machos) + num(ante.hembras)
+      : 0
+    const tipo = 'PORCINOS'
+    const consecutivo = siguienteConsecutivo()
+    // Fecha de emision del certificado (dia en que se genera).
+    const hoy = new Date().toLocaleDateString('en-CA')
+    const hallazgos = items.map((r) => ({
+      organo: r.organo,
+      patologia: r.patologia,
+      dictamen: r.dictamen,
+      cantidad: r.cantidad,
+      gancho: r.gancho,
+    }))
+    const contenido = construirContenido({
+      consecutivo,
+      fechaCertificado: hoy,
+      fechaSacrificio: base.fecha,
+      cliente: base.cliente,
+      lote: base.loteSacrificio,
+      totalAnimales: total,
+      tipoAnimales: tipo,
+      hallazgos,
+    })
+
+    // Registra el certificado con su consecutivo en el modulo Certificado Decomiso.
+    const creado = agregarCertificado({
+      fechaCertificado: hoy,
+      fechaSacrificio: base.fecha,
+      cliente: base.cliente,
+      lote: base.loteSacrificio,
+      totalAnimales: total,
+      tipoAnimales: tipo,
+      hallazgos,
+      imagenes: [],
+      contenido,
+      usuario: usuario?.nombre || usuario?.email || 'DESCONOCIDO',
+    })
+    return creado
   }
 
   return (
@@ -506,10 +584,10 @@ export function Cronologia() {
       <header className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-slate-900">
-            Cronologia Bovino
+            Pos Mortem Porcino
           </h2>
           <p className="text-slate-500">
-            Determinacion de edad por cronologia dentaria.
+            Inspeccion post mortem de bovinos por lote de sacrificio.
           </p>
         </div>
         {!mostrarForm && (
@@ -525,55 +603,101 @@ export function Cronologia() {
       {mostrarForm ? (
         <form
           onSubmit={guardar}
-          className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm [&_input]:uppercase [&_textarea]:uppercase [&_label>span]:uppercase"
+          className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <Campo label="Fecha">
+          <div className="grid gap-4 md:grid-cols-4">
+            <Campo label="Fecha de sacrificio">
               <input
                 type="date"
-                data-no-upper
                 className={inputClase}
                 value={form.fecha}
                 onChange={(e) =>
                   setForm((prev) => ({
                     ...prev,
                     fecha: e.target.value,
-                    firmador: '',
+                    cliente: '',
                     loteSacrificio: '',
                   }))
                 }
               />
             </Campo>
-            <Campo label="Firmador">
+            <Campo label="Hora llegada">
+              <input
+                type="time"
+                className={inputClase}
+                value={form.horaLlegada}
+                onChange={(e) => actualizar('horaLlegada', e.target.value)}
+              />
+            </Campo>
+            <Campo label="Hora de sacrificio">
+              <input
+                type="time"
+                className={inputClase}
+                value={form.horaSacrificio}
+                onChange={(e) => actualizar('horaSacrificio', e.target.value)}
+              />
+            </Campo>
+            <Campo label="Tiempo de reposo">
+              <input
+                className={`${inputClase} bg-slate-50`}
+                value={form.tiempoReposo}
+                readOnly
+              />
+            </Campo>
+            <Campo label="Cliente">
               <SelectorBuscable
                 opciones={firmadores}
-                value={form.firmador}
+                value={form.cliente}
                 onChange={(v) =>
                   setForm((prev) => ({
                     ...prev,
-                    firmador: v,
+                    cliente: v,
                     loteSacrificio: '',
                   }))
                 }
                 permitirLibre
-                placeholder="Selecciona firmador"
+                placeholder="Selecciona cliente"
               />
             </Campo>
             <Campo label="Lote de sacrificio">
               <SelectorBuscable
                 opciones={lotes}
                 value={form.loteSacrificio}
-                onChange={(v) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    loteSacrificio: v,
-                    gancho: prev.gancho.trim()
-                      ? prev.gancho
-                      : siguienteGanchoGlobal(prev.fecha),
-                  }))
-                }
+                onChange={elegirLote}
                 permitirLibre
                 placeholder="Selecciona lote"
+              />
+            </Campo>
+            <Campo label="Granja">
+              <input
+                className={inputClase}
+                value={form.granja}
+                onChange={(e) => actualizar('granja', e.target.value)}
+              />
+            </Campo>
+            <Campo label="Origen">
+              <input
+                className={inputClase}
+                value={form.origen}
+                onChange={(e) => actualizar('origen', e.target.value)}
+              />
+            </Campo>
+            <Campo label="Organo">
+              <SelectorBuscable
+                opciones={organos}
+                value={form.organo}
+                onChange={(v) => actualizar('organo', v)}
+                permitirLibre
+                placeholder="Selecciona organo"
+              />
+            </Campo>
+            <Campo label="Cantidad">
+              <input
+                type="number"
+                min={0}
+                className={inputClase}
+                value={form.cantidad}
+                onChange={(e) => actualizar('cantidad', e.target.value)}
               />
             </Campo>
             <Campo label="Gancho">
@@ -583,49 +707,45 @@ export function Cronologia() {
                 onChange={(e) => actualizar('gancho', e.target.value)}
               />
             </Campo>
-            <Campo label="N dientes">
-              <select
-                data-no-upper
-                className={inputClase}
-                value={form.dientes}
-                onChange={(e) => elegirDientes(e.target.value)}
-              >
-                <option value="">Selecciona</option>
-                {TABLA_GANCHOS.map((f) => (
-                  <option key={f.dientes} value={f.dientes}>
-                    {f.dientes}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-            <Campo label="Edad mes">
-              <input
-                readOnly
-                data-no-upper
-                className={`${inputClase} bg-slate-100`}
-                value={form.edadMes}
+            <Campo label="Patologia">
+              <SelectorBuscable
+                opciones={patologias}
+                value={form.patologia}
+                onChange={(v) => actualizar('patologia', v)}
+                permitirLibre
+                placeholder="Selecciona patologia"
               />
             </Campo>
-            <Campo label="Edad aprox año">
-              <input
-                readOnly
-                data-no-upper
-                className={`${inputClase} bg-slate-100`}
-                value={form.edadAnio}
+            <Campo label="Dictamen">
+              <SelectorBuscable
+                opciones={DICTAMENES}
+                value={form.dictamen}
+                onChange={(v) => actualizar('dictamen', v)}
+                permitirLibre
+                placeholder="Selecciona dictamen"
               />
             </Campo>
-            <Campo label="Observaciones">
+            <Campo label="Observacion">
+              <SelectorBuscable
+                opciones={OBSERVACIONES_OPC}
+                value={form.observacion}
+                onChange={(v) => actualizar('observacion', v)}
+                permitirLibre
+                placeholder="Observacion"
+              />
+            </Campo>
+            <Campo label="Firma">
               <input
                 className={inputClase}
-                value={form.observaciones}
-                onChange={(e) => actualizar('observaciones', e.target.value)}
+                value={form.firma}
+                onChange={(e) => actualizar('firma', e.target.value)}
               />
             </Campo>
             <div className="flex items-end">
               <button
                 type="button"
                 onClick={agregarLinea}
-                className="rounded-md border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100"
+                className="w-full rounded-md border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100"
               >
                 + Agregar linea
               </button>
@@ -637,25 +757,27 @@ export function Cronologia() {
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
-                    <th className="px-3 py-2">Fecha</th>
                     <th className="px-3 py-2">Lote</th>
+                    <th className="px-3 py-2">Organo</th>
+                    <th className="px-3 py-2">Cantidad</th>
                     <th className="px-3 py-2">Gancho</th>
-                    <th className="px-3 py-2">N dientes</th>
-                    <th className="px-3 py-2">Edad mes</th>
-                    <th className="px-3 py-2">Edad aprox año</th>
+                    <th className="px-3 py-2">Patologia</th>
+                    <th className="px-3 py-2">Dictamen</th>
+                    <th className="px-3 py-2">Observacion</th>
                     <th className="px-3 py-2"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {lineas.map((l) => (
                     <tr key={l.id}>
-                      <td className="px-3 py-2">{l.fecha}</td>
                       <td className="px-3 py-2">{l.loteSacrificio}</td>
+                      <td className="px-3 py-2">{l.organo}</td>
+                      <td className="px-3 py-2">{l.cantidad}</td>
                       <td className="px-3 py-2">{l.gancho}</td>
-                      <td className="px-3 py-2">{l.dientes}</td>
-                      <td className="px-3 py-2">{l.edadMes}</td>
-                      <td className="px-3 py-2">{l.edadAnio}</td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2">{l.patologia}</td>
+                      <td className="px-3 py-2">{l.dictamen}</td>
+                      <td className="px-3 py-2">{l.observacion}</td>
+                      <td className="px-3 py-2">
                         <button
                           type="button"
                           onClick={() => quitarLinea(l.id)}
@@ -746,7 +868,7 @@ export function Cronologia() {
                 type="text"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Lote, gancho u observaciones"
+                placeholder="Lote, cliente, organo o patologia"
                 className="mt-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </label>
@@ -800,8 +922,8 @@ export function Cronologia() {
                   <th className="px-4 py-3">Consecutivo</th>
                   <th className="px-4 py-3">Fecha</th>
                   <th className="px-4 py-3">Lote</th>
-                  <th className="px-4 py-3">Ganchos</th>
-                  <th className="px-4 py-3">Registros</th>
+                  <th className="px-4 py-3">Cliente</th>
+                  <th className="px-4 py-3">Organos</th>
                   <th className="px-4 py-3">Acciones</th>
                 </tr>
               </thead>
@@ -817,13 +939,11 @@ export function Cronologia() {
                       />
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-700">
-                      CRB-{consecutivoPorClave.get(g.clave) ?? '?'}
+                      PMP-{consecutivoPorClave.get(g.clave) ?? '?'}
                     </td>
                     <td className="px-4 py-3">{g.fecha}</td>
                     <td className="px-4 py-3">{g.loteSacrificio}</td>
-                    <td className="px-4 py-3">
-                      {g.items.map((i) => i.gancho).join(', ')}
-                    </td>
+                    <td className="px-4 py-3">{g.cliente}</td>
                     <td className="px-4 py-3">{g.items.length}</td>
                     <td className="px-4 py-3">
                       <button
@@ -851,12 +971,62 @@ export function Cronologia() {
       {mostrarEliminar && (
         <ModalEliminar
           titulo="Eliminar registros"
-          descripcion={`Vas a eliminar ${seleccionados.size} lote(s) de cronologia.`}
+          descripcion={`Vas a eliminar ${seleccionados.size} lote(s) de pos mortem.`}
           eliminando={eliminando}
           error={errorEliminar}
           onCancelar={() => setMostrarEliminar(false)}
           onConfirmar={eliminarSeleccionados}
         />
+      )}
+
+      {certificadoItems && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900">
+              Certificado de decomiso
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Se registraron {certificadoItems.length} hallazgo(s) con decomiso.
+              ¿Desea generar el certificado de decomiso?
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setCertificadoItems(null)}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                No
+              </button>
+              <button
+                onClick={() => {
+                  const items = certificadoItems
+                  setCertificadoItems(null)
+                  const creado = generarCertificado(items)
+                  if (creado)
+                    setAvisoCert(
+                      `Certificado ${formatoConsecutivo(
+                        creado.consecutivo,
+                      )} generado.`,
+                    )
+                }}
+                className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+              >
+                Sí, generar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {avisoCert && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-lg">
+          <span>{avisoCert}</span>
+          <button
+            onClick={() => setAvisoCert(null)}
+            className="text-white/80 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
       )}
     </div>
   )

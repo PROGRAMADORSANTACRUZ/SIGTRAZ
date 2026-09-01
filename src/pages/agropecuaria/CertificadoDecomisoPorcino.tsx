@@ -8,7 +8,7 @@ import {
   useCertificados,
   type CertificadoDecomiso as Certificado,
   type HallazgoCertificado,
-} from './certificadosStore'
+} from './certificadosPorcinoStore'
 import { generarCertificadoDocx } from './certificadoDocx'
 
 const ESTILOS_DOC =
@@ -85,9 +85,9 @@ interface EdicionForm {
 }
 
 const DICTAMENES = ['DECOMISO', 'DECOMISO PARCIAL', 'RETENIDO']
-const TIPOS_ANIMAL = ['BOVINOS', 'BUFALOS']
+const TIPOS_ANIMAL = ['PORCINOS']
 
-export function CertificadoDecomiso() {
+export function CertificadoDecomisoPorcino() {
   const certificados = useCertificados()
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
   const [mostrarEliminar, setMostrarEliminar] = useState(false)
@@ -216,7 +216,7 @@ export function CertificadoDecomiso() {
     enlace.download =
       lista.length === 1
         ? `certificado-${formatoConsecutivo(lista[0].consecutivo)}.docx`
-        : 'certificados-decomiso.docx'
+        : 'certificados-decomiso-porcino.docx'
     enlace.click()
     URL.revokeObjectURL(enlace.href)
   }
@@ -227,7 +227,7 @@ export function CertificadoDecomiso() {
     const win = window.open('', '_blank')
     if (!win) return
     win.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Certificados de decomiso</title><style>${ESTILOS_DOC}</style></head><body>` +
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Certificados de decomiso porcino</title><style>${ESTILOS_DOC}</style></head><body>` +
         `<div class="barra"><button class="imp" onclick="window.print()">Imprimir / Guardar PDF</button></div>` +
         documentoExport(lista) +
         `</body></html>`,
@@ -243,7 +243,7 @@ export function CertificadoDecomiso() {
       fechaSacrificio: c.fechaSacrificio,
       fechaCertificado:
         c.fechaCertificado || new Date().toLocaleDateString('en-CA'),
-      tipoAnimales: c.tipoAnimales || 'BOVINOS',
+      tipoAnimales: c.tipoAnimales || 'PORCINOS',
       totalAnimales: String(c.totalAnimales ?? 0),
       hallazgos: c.hallazgos.map((h) => ({
         organo: h.organo,
@@ -368,7 +368,7 @@ export function CertificadoDecomiso() {
     <div className="space-y-6">
       <header>
         <h2 className="font-display text-2xl font-bold text-slate-900">
-          Certificado Decomiso Bovino
+          Certificado Decomiso Porcino
         </h2>
         <p className="text-slate-500">
           Certificados de decomiso generados desde Pos Mortem, con consecutivo.

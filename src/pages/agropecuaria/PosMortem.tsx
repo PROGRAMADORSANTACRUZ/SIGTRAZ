@@ -163,7 +163,7 @@ export function PosMortem() {
     return lista
   }, [registros, filtroMes, filtroDesde, filtroHasta, busqueda])
 
-  // Consecutivo visual PM-N por orden de creacion del lote (fecha||lote).
+  // Consecutivo visual PMB-N por orden de creacion del lote (fecha||lote).
   const consecutivoPorClave = useMemo(() => {
     const orden: string[] = []
     const visto = new Set<string>()
@@ -588,7 +588,7 @@ export function PosMortem() {
       <header className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-slate-900">
-            Pos Mortem
+            Pos Mortem Bovino
           </h2>
           <p className="text-slate-500">
             Inspeccion post mortem de bovinos por lote de sacrificio.
@@ -943,7 +943,7 @@ export function PosMortem() {
                       />
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-700">
-                      PM-{consecutivoPorClave.get(g.clave) ?? '?'}
+                      PMB-{consecutivoPorClave.get(g.clave) ?? '?'}
                     </td>
                     <td className="px-4 py-3">{g.fecha}</td>
                     <td className="px-4 py-3">{g.loteSacrificio}</td>

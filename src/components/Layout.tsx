@@ -78,14 +78,22 @@ export const agropecuariaNavGroups: NavGroup[] = [
     items: [
       { to: '/agropecuaria/sacrificio', label: 'Ante Mortem Bovino' },
       { to: '/agropecuaria/sacrificio-porcino', label: 'Ante Mortem Porcino' },
-      { to: '/agropecuaria/cronologia', label: 'Cronologia' },
-      { to: '/agropecuaria/pos-mortem', label: 'Pos Mortem' },
-      { to: '/agropecuaria/certificado-decomiso', label: 'Certificado Decomiso' },
+      { to: '/agropecuaria/cronologia', label: 'Cronologia Bovino' },
+      { to: '/agropecuaria/cronologia-porcino', label: 'Cronologia Porcino' },
+      { to: '/agropecuaria/pos-mortem', label: 'Pos Mortem Bovino' },
+      { to: '/agropecuaria/pos-mortem-porcino', label: 'Pos Mortem Porcino' },
+      { to: '/agropecuaria/certificado-decomiso', label: 'Certificado Decomiso Bovino' },
+      { to: '/agropecuaria/certificado-decomiso-porcino', label: 'Certificado Decomiso Porcino' },
       {
         to: '/agropecuaria/curva-canales',
-        label: 'Curva de temperatura de canales',
+        label: 'Curva de temperatura de canales Bovino',
       },
-      { to: '/agropecuaria/certificado', label: 'Certificado Calidad' },
+      {
+        to: '/agropecuaria/curva-canales-porcino',
+        label: 'Curva de temperatura de canales Porcino',
+      },
+      { to: '/agropecuaria/certificado', label: 'Certificado Calidad Bovino' },
+      { to: '/agropecuaria/certificado-porcino', label: 'Certificado Calidad Porcino' },
     ],
   },
   {

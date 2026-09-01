@@ -42,12 +42,17 @@ import { SesionesActivas } from './pages/SesionesActivas'
 import { Empresas } from './pages/Empresas'
 import { AgroDashboard } from './pages/agropecuaria/AgroDashboard'
 import { CertificadoDecomiso } from './pages/agropecuaria/CertificadoDecomiso'
+import { CertificadoDecomisoPorcino } from './pages/agropecuaria/CertificadoDecomisoPorcino'
 import { AnteMortem } from './pages/agropecuaria/AnteMortem'
 import { AnteMortemPorcino } from './pages/agropecuaria/AnteMortemPorcino'
 import { Cronologia } from './pages/agropecuaria/Cronologia'
+import { CronologiaPorcino } from './pages/agropecuaria/CronologiaPorcino'
 import { PosMortem } from './pages/agropecuaria/PosMortem'
+import { PosMortemPorcino } from './pages/agropecuaria/PosMortemPorcino'
 import { CurvaTemperaturaCanales } from './pages/agropecuaria/CurvaTemperaturaCanales'
+import { CurvaTemperaturaCanalesPorcino } from './pages/agropecuaria/CurvaTemperaturaCanalesPorcino'
 import { Certificado } from './pages/agropecuaria/Certificado'
+import { CertificadoPorcino } from './pages/agropecuaria/CertificadoPorcino'
 import { Informes } from './pages/agropecuaria/Informes'
 import { Datos } from './pages/agropecuaria/Datos'
 import { Clientes as ClientesAgro } from './pages/agropecuaria/Clientes'
@@ -147,20 +152,40 @@ export const router = createBrowserRouter([
             element: <Cronologia />,
           },
           {
+            path: 'cronologia-porcino',
+            element: <CronologiaPorcino />,
+          },
+          {
             path: 'pos-mortem',
             element: <PosMortem />,
+          },
+          {
+            path: 'pos-mortem-porcino',
+            element: <PosMortemPorcino />,
           },
           {
             path: 'certificado-decomiso',
             element: <CertificadoDecomiso />,
           },
           {
+            path: 'certificado-decomiso-porcino',
+            element: <CertificadoDecomisoPorcino />,
+          },
+          {
             path: 'curva-canales',
             element: <CurvaTemperaturaCanales />,
           },
           {
+            path: 'curva-canales-porcino',
+            element: <CurvaTemperaturaCanalesPorcino />,
+          },
+          {
             path: 'certificado',
             element: <Certificado />,
+          },
+          {
+            path: 'certificado-porcino',
+            element: <CertificadoPorcino />,
           },
           {
             path: 'informes',
