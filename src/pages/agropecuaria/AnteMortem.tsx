@@ -789,7 +789,7 @@ export function AnteMortem() {
                   min={0}
                   data-no-upper
                   className={inputClase}
-                  value={form.novillo}
+                  value={form.novillo || ''}
                   onChange={(e) =>
                     actualizar('novillo', Number(e.target.value) || 0)
                   }
@@ -801,7 +801,7 @@ export function AnteMortem() {
                   min={0}
                   data-no-upper
                   className={inputClase}
-                  value={form.vaca}
+                  value={form.vaca || ''}
                   onChange={(e) => actualizar('vaca', Number(e.target.value) || 0)}
                 />
               </Campo>
@@ -811,7 +811,7 @@ export function AnteMortem() {
                   min={0}
                   data-no-upper
                   className={inputClase}
-                  value={form.toro}
+                  value={form.toro || ''}
                   onChange={(e) => actualizar('toro', Number(e.target.value) || 0)}
                 />
               </Campo>
@@ -821,7 +821,7 @@ export function AnteMortem() {
                   min={0}
                   data-no-upper
                   className={inputClase}
-                  value={form.bufalo}
+                  value={form.bufalo || ''}
                   onChange={(e) =>
                     actualizar('bufalo', Number(e.target.value) || 0)
                   }
@@ -870,7 +870,7 @@ export function AnteMortem() {
                 min={0}
                 data-no-upper
                 className={inputClase}
-                value={form.numeroAnimales}
+                value={form.numeroAnimales || ''}
                 onChange={(e) =>
                   actualizar('numeroAnimales', Number(e.target.value) || 0)
                 }
