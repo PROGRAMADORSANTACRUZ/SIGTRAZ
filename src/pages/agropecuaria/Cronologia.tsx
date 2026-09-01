@@ -22,6 +22,7 @@ interface RegistroCronologia {
   id: string
   fecha: string
   firmador: string
+  numeroGuia: string
   loteSacrificio: string
   gancho: string
   dientes: string
@@ -33,6 +34,7 @@ interface RegistroCronologia {
 const formVacio = (): Omit<RegistroCronologia, 'id'> => ({
   fecha: '',
   firmador: '',
+  numeroGuia: '',
   loteSacrificio: '',
   gancho: '',
   dientes: '',
@@ -44,6 +46,7 @@ const formVacio = (): Omit<RegistroCronologia, 'id'> => ({
 const ETIQUETAS: Record<keyof Omit<RegistroCronologia, 'id'>, string> = {
   fecha: 'Fecha',
   firmador: 'Firmador',
+  numeroGuia: 'Numero de guia',
   loteSacrificio: 'Lote de sacrificio',
   gancho: 'Gancho',
   dientes: 'N dientes',
@@ -185,6 +188,51 @@ export function Cronologia() {
     }
   }, [form.fecha, form.firmador, form.loteSacrificio, mostrarForm, registros])
 
+  // Guias de Ante Mortem del dia (y firmador si esta elegido). Cada guia trae su lote.
+  const guiasAnte = useMemo(() => {
+    const map = new Map<string, { lote: string; firmador: string }>()
+    try {
+      const ante: {
+        fechaIngreso?: string
+        firmador?: string
+        loteSacrificio?: string
+        numeroGuia?: string
+      }[] = JSON.parse(localStorage.getItem(ANTEMORTEM_KEY) || '[]')
+      ante
+        .filter(
+          (r) =>
+            (r.fechaIngreso || '') === form.fecha &&
+            (!form.firmador || (r.firmador || '').trim() === form.firmador),
+        )
+        .forEach((r) => {
+          const g = (r.numeroGuia || '').trim()
+          if (g && !map.has(g))
+            map.set(g, {
+              lote: (r.loteSacrificio || '').trim(),
+              firmador: (r.firmador || '').trim(),
+            })
+        })
+    } catch {
+      /* sin datos */
+    }
+    return map
+  }, [form.fecha, form.firmador, mostrarForm])
+  const guias = useMemo(() => [...guiasAnte.keys()], [guiasAnte])
+
+  // Al elegir una guia trae automaticamente su lote (y firmador si falta).
+  function elegirGuia(g: string) {
+    const info = guiasAnte.get(g)
+    setForm((prev) => ({
+      ...prev,
+      numeroGuia: g,
+      loteSacrificio: info ? info.lote : prev.loteSacrificio,
+      firmador: prev.firmador || (info ? info.firmador : prev.firmador),
+      gancho: prev.gancho.trim()
+        ? prev.gancho
+        : siguienteGanchoGlobal(prev.fecha),
+    }))
+  }
+
   function actualizar<K extends keyof Omit<RegistroCronologia, 'id'>>(
     campo: K,
     valor: Omit<RegistroCronologia, 'id'>[K],
@@ -260,6 +308,7 @@ export function Cronologia() {
       ...formVacio(),
       fecha: prev.fecha,
       firmador: prev.firmador,
+      numeroGuia: prev.numeroGuia,
       loteSacrificio: prev.loteSacrificio,
       gancho: siguienteGancho,
     }))
@@ -301,6 +350,7 @@ export function Cronologia() {
       ...formVacio(),
       fecha: ordenados[0].fecha,
       firmador: ordenados[0].firmador || '',
+      numeroGuia: ordenados[0].numeroGuia || '',
       loteSacrificio: ordenados[0].loteSacrificio,
       gancho: siguiente,
     })
@@ -539,6 +589,7 @@ export function Cronologia() {
                     ...prev,
                     fecha: e.target.value,
                     firmador: '',
+                    numeroGuia: '',
                     loteSacrificio: '',
                   }))
                 }
@@ -552,11 +603,21 @@ export function Cronologia() {
                   setForm((prev) => ({
                     ...prev,
                     firmador: v,
+                    numeroGuia: '',
                     loteSacrificio: '',
                   }))
                 }
                 permitirLibre
                 placeholder="Selecciona firmador"
+              />
+            </Campo>
+            <Campo label="Numero de guia">
+              <SelectorBuscable
+                opciones={guias}
+                value={form.numeroGuia}
+                onChange={elegirGuia}
+                permitirLibre
+                placeholder="Selecciona guia"
               />
             </Campo>
             <Campo label="Lote de sacrificio">
