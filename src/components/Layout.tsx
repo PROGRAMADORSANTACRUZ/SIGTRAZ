@@ -216,15 +216,15 @@ export function Layout({
     <div className="flex min-h-screen">
       {menuAbierto && (
         <div
-          className="fixed inset-0 z-30 bg-slate-900/50 md:hidden"
+          className={`fixed inset-0 z-30 bg-slate-900/50 ${esPreview ? '' : 'md:hidden'}`}
           onClick={() => setMenuAbierto(false)}
           aria-hidden
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 transform flex-col bg-slate-900 text-slate-100 transition-transform duration-200 md:static md:z-auto md:translate-x-0 ${
-          menuAbierto ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 transform flex-col bg-slate-900 text-slate-100 transition-transform duration-200 ${
+          esPreview ? '' : 'md:static md:z-auto md:translate-x-0'
+        } ${menuAbierto ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="px-5 py-6 border-b border-slate-700">
           <div className="flex items-start justify-between">
@@ -354,7 +354,7 @@ export function Layout({
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col overflow-auto">
-        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm md:hidden">
+        <div className={`sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm ${esPreview ? '' : 'md:hidden'}`}>
           <button
             type="button"
             onClick={() => setMenuAbierto(true)}
