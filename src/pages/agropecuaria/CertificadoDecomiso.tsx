@@ -10,6 +10,8 @@ import {
   type HallazgoCertificado,
 } from './certificadosStore'
 import { generarCertificadoDocx } from './certificadoDocx'
+import { datosFirmante } from './firmante'
+import { useAuth } from '../../store/AuthContext'
 
 const ESTILOS_DOC =
   `*{box-sizing:border-box;}` +
@@ -48,10 +50,14 @@ const ESTILOS_DOC =
   `@media print{.barra{display:none;}.hoja{margin-top:0;}}`
 
 // Envuelve el contenido con membrete, marca de agua, firma y pie de pagina.
-function plantillaCertificado(contenido: string, editable = false): string {
+function plantillaCertificado(
+  contenido: string,
+  firmante: { archivoFirma: string; nombre: string },
+  editable = false,
+): string {
   const origin = window.location.origin
   const logo = `${origin}/logos/agropecuaria-santacruz.png`
-  const firma = `${origin}/firmas/juancamiloalean.png`
+  const firma = firmante.archivoFirma ? `${origin}${firmante.archivoFirma}` : ''
   const marca = `${origin}/logos/marca%20de%20agua.png`
   return (
     `<div class="hoja">` +
@@ -59,8 +65,8 @@ function plantillaCertificado(contenido: string, editable = false): string {
     `<div class="membrete"><img src="${logo}" alt="Santacruz" onerror="this.style.display='none'"/></div>` +
     `<div class="cuerpo"${editable ? ' contenteditable="true"' : ''}>${contenido}</div>` +
     `<div class="firma">` +
-    `<img src="${firma}" alt="" onerror="this.style.display='none'"/>` +
-    `<div class="nombre">Juan Camilo Alean Rodríguez.</div>` +
+    (firma ? `<img src="${firma}" alt="" onerror="this.style.display='none'"/>` : '') +
+    `<div class="nombre">${firmante.nombre}</div>` +
     `<div class="cargo">Médico Veterinario Zootecnista</div>` +
     `<div class="cargo">Frigorífico Agropecuaria Santacruz.</div>` +
     `</div>` +
@@ -89,6 +95,7 @@ const TIPOS_ANIMAL = ['BOVINOS', 'BUFALOS']
 
 export function CertificadoDecomiso() {
   const certificados = useCertificados()
+  const { usuario } = useAuth()
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
   const [mostrarEliminar, setMostrarEliminar] = useState(false)
   const [eliminando, setEliminando] = useState(false)
@@ -197,11 +204,12 @@ export function CertificadoDecomiso() {
   }
 
   function documentoExport(lista: Certificado[]) {
+    const firmante = datosFirmante(usuario)
     return lista
       .map(
         (c, i) =>
           `<div style="${i > 0 ? 'page-break-before:always;' : ''}">` +
-          plantillaCertificado(c.contenido) +
+          plantillaCertificado(c.contenido, firmante) +
           `</div>`,
       )
       .join('')
@@ -210,7 +218,7 @@ export function CertificadoDecomiso() {
   async function exportarWord() {
     const lista = certificadosParaExportar()
     if (lista.length === 0) return
-    const blob = await generarCertificadoDocx(lista)
+    const blob = await generarCertificadoDocx(lista, usuario)
     const enlace = document.createElement('a')
     enlace.href = URL.createObjectURL(blob)
     enlace.download =

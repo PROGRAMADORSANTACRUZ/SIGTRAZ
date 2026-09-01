@@ -5,6 +5,31 @@ import {
   mesDe,
   type CertificadoDecomiso,
 } from './certificadosStore'
+import { datosFirmante } from './firmante'
+import type { Usuario } from '../../types/trazabilidad'
+
+// Carga la firma del usuario logueado; si no existe, usa la del veterinario por defecto.
+async function cargarFirma(
+  usuario: Usuario | null,
+): Promise<{ bytes: Uint8Array; nombre: string }> {
+  const { archivoFirma, nombre } = datosFirmante(usuario)
+  if (archivoFirma) {
+    try {
+      const resp = await fetch(archivoFirma)
+      if (resp.ok) {
+        const bytes = new Uint8Array(await resp.arrayBuffer())
+        // Verifica firma PNG (0x89 'P' 'N' 'G') para descartar paginas de error 404.
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e) {
+          return { bytes, nombre: nombre || 'Juan Camilo Alean Rodríguez.' }
+        }
+      }
+    } catch {
+      // cae al respaldo
+    }
+  }
+  const bytes = await cargarBytes('/firmas/juancamiloalean.png')
+  return { bytes, nombre: nombre || 'Juan Camilo Alean Rodríguez.' }
+}
 
 interface Media {
   id: string
@@ -27,17 +52,19 @@ const RUTA_MEMBRETE = '/plantillas/MEMBRETE.docx'
 // Genera el .docx usando el membrete oficial como base; si falla, lo arma desde cero.
 export async function generarCertificadoDocx(
   certs: CertificadoDecomiso[],
+  usuario: Usuario | null = null,
 ): Promise<Blob> {
   try {
-    return await generarConMembrete(certs)
+    return await generarConMembrete(certs, usuario)
   } catch {
-    return await generarDesdeCero(certs)
+    return await generarDesdeCero(certs, usuario)
   }
 }
 
 // Inserta el certificado dentro del membrete .docx conservando su encabezado y pie.
 async function generarConMembrete(
   certs: CertificadoDecomiso[],
+  usuario: Usuario | null,
 ): Promise<Blob> {
   const zip = new PizZip(await cargarBytes(RUTA_MEMBRETE))
   const docFile = zip.file('word/document.xml')
@@ -50,7 +77,7 @@ async function generarConMembrete(
     (docXml.match(/<w:sectPr[\s\S]*?<\/w:sectPr>/) || [''])[0],
   )
 
-  const firmaBytes = await cargarBytes('/firmas/juancamiloalean.png')
+  const { bytes: firmaBytes, nombre: nombreFirma } = await cargarFirma(usuario)
   const firmaSize = pngSizeEmu(firmaBytes, 4.5)
 
   const media: Media[] = [
@@ -60,7 +87,7 @@ async function generarConMembrete(
   const next = () => ++seq
 
   const cuerpo = certs
-    .map((c, i) => bloqueMembrete(c, i > 0, media, next, firmaSize))
+    .map((c, i) => bloqueMembrete(c, i > 0, media, next, firmaSize, nombreFirma))
     .join('')
 
   // Reemplaza el cuerpo del membrete conservando su sectPr (encabezado y pie).
@@ -168,6 +195,7 @@ function bloqueMembrete(
   media: Media[],
   next: () => number,
   firmaSize: Emu,
+  nombreFirma: string,
 ): string {
   const sexoTotal = c.totalAnimales > 0 ? `${c.totalAnimales} ` : ''
   const dia =
@@ -214,7 +242,7 @@ function bloqueMembrete(
     ) +
     fotos +
     imagenInline('rIdCertFirma', firmaSize, next(), 'firma') +
-    firmaNombre('Juan Camilo Alean Rodríguez.') +
+    firmaNombre(nombreFirma) +
     parrafo('Médico Veterinario Zootecnista', { align: 'center', size: 18 }) +
     parrafo('Frigorífico Agropecuaria Santacruz.', {
       align: 'center',
@@ -226,14 +254,17 @@ function bloqueMembrete(
 // Arma el .docx desde cero con un membrete generado (respaldo si no hay .docx).
 async function generarDesdeCero(
   certs: CertificadoDecomiso[],
+  usuario: Usuario | null,
 ): Promise<Blob> {
   const zip = new PizZip()
 
-  const [marcaBytes, logoBytes, firmaBytes] = await Promise.all([
+  const [marcaBytes, logoBytes, firma] = await Promise.all([
     cargarBytes('/logos/marca%20de%20agua.png'),
     cargarBytes('/logos/agropecuaria-santacruz.png'),
-    cargarBytes('/firmas/juancamiloalean.png'),
+    cargarFirma(usuario),
   ])
+  const firmaBytes = firma.bytes
+  const nombreFirma = firma.nombre
   const logoSize = pngSizeEmu(logoBytes, 4.6)
   const firmaSize = pngSizeEmu(firmaBytes, 4.5)
 
@@ -246,7 +277,7 @@ async function generarDesdeCero(
 
   const cuerpo = certs
     .map((c, i) =>
-      bloqueCertificado(c, i > 0, media, next, logoSize, firmaSize),
+      bloqueCertificado(c, i > 0, media, next, logoSize, firmaSize, nombreFirma),
     )
     .join('')
 
@@ -553,6 +584,7 @@ function bloqueCertificado(
   next: () => number,
   logoSize: Emu,
   firmaSize: Emu,
+  nombreFirma: string,
 ): string {
   const sexoTotal = c.totalAnimales > 0 ? `${c.totalAnimales} ` : ''
   const dia =
@@ -601,7 +633,7 @@ function bloqueCertificado(
     ) +
     fotos +
     imagenInline(RID_FIRMA, firmaSize, next(), 'firma') +
-    firmaNombre('Juan Camilo Alean Rodríguez.') +
+    firmaNombre(nombreFirma) +
     parrafo('Médico Veterinario Zootecnista', { align: 'center', size: 18 }) +
     parrafo('Frigorífico Agropecuaria Santacruz.', { align: 'center', size: 18 }) +
     pie(logoSize, next())
