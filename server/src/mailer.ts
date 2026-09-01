@@ -41,16 +41,22 @@ export async function enviarConAdjuntos(opciones: {
         Este correo fue enviado desde el sistema SIGTRAZ.
       </p>
     </div>`
+  const texto = `Agropecuaria Santacruz\n\n${mensaje}\n\nEste correo fue enviado desde el sistema SIGTRAZ.`
 
   await getTransporter().sendMail({
     from: config.smtp.from,
     to: destino,
+    replyTo: config.smtp.user,
     subject: asunto,
+    text: texto,
     html,
     attachments: adjuntos.map((a) => ({
       filename: a.nombre,
       content: Buffer.from(a.contenidoBase64, 'base64'),
       contentType: a.tipo,
     })),
+    headers: {
+      'X-Entity-Ref-ID': `sigtraz-${Date.now()}`,
+    },
   })
 }
