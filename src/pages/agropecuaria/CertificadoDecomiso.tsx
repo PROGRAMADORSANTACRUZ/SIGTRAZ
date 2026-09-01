@@ -100,6 +100,11 @@ export function CertificadoDecomiso() {
   const [mostrarEliminar, setMostrarEliminar] = useState(false)
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
+  const [mostrarCorreo, setMostrarCorreo] = useState(false)
+  const [correoDestino, setCorreoDestino] = useState('')
+  const [enviandoCorreo, setEnviandoCorreo] = useState(false)
+  const [correoError, setCorreoError] = useState<string | null>(null)
+  const [correoOk, setCorreoOk] = useState(false)
   const [editando, setEditando] = useState<Certificado | null>(null)
   const [form, setForm] = useState<EdicionForm | null>(null)
   const [camaraAbierta, setCamaraAbierta] = useState(false)
@@ -227,6 +232,50 @@ export function CertificadoDecomiso() {
         : 'certificados-decomiso.docx'
     enlace.click()
     URL.revokeObjectURL(enlace.href)
+  }
+
+  async function enviarCorreo() {
+    const destino = correoDestino.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destino)) {
+      setCorreoError('Ingresa un correo valido')
+      return
+    }
+    const lista = certificadosParaExportar()
+    if (lista.length === 0) {
+      setCorreoError('No hay certificados para enviar')
+      return
+    }
+    setEnviandoCorreo(true)
+    setCorreoError(null)
+    try {
+      const blob = await generarCertificadoDocx(lista, usuario)
+      const buffer = await blob.arrayBuffer()
+      let binario = ''
+      const bytes = new Uint8Array(buffer)
+      for (let i = 0; i < bytes.length; i++) binario += String.fromCharCode(bytes[i])
+      const base64 = btoa(binario)
+      const nombreArchivo =
+        lista.length === 1
+          ? `certificado-${formatoConsecutivo(lista[0].consecutivo)}.docx`
+          : 'certificados-decomiso.docx'
+      await api.enviarCorreo({
+        destino,
+        asunto: 'Certificado de Decomiso - Agropecuaria Santacruz',
+        mensaje: 'Adjunto encontrara el certificado de decomiso en formato Word.',
+        adjuntos: [
+          {
+            nombre: nombreArchivo,
+            contenidoBase64: base64,
+            tipo: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+        ],
+      })
+      setCorreoOk(true)
+    } catch (err) {
+      setCorreoError(err instanceof Error ? err.message : 'No se pudo enviar el correo')
+    } finally {
+      setEnviandoCorreo(false)
+    }
   }
 
   function exportarPDF() {
@@ -458,6 +507,18 @@ export function CertificadoDecomiso() {
               className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
             >
               PDF
+            </button>
+            <button
+              onClick={() => {
+                setCorreoDestino('')
+                setCorreoError(null)
+                setCorreoOk(false)
+                setMostrarCorreo(true)
+              }}
+              disabled={filtrados.length === 0}
+              className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+            >
+              Enviar correo
             </button>
             {seleccionados.size > 0 && (
               <button
@@ -838,6 +899,58 @@ export function CertificadoDecomiso() {
           onCancelar={() => setMostrarEliminar(false)}
           onConfirmar={confirmarEliminar}
         />
+      )}
+
+      {mostrarCorreo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-800">Enviar certificado por correo</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Se enviara el documento Word de{' '}
+              {seleccionados.size > 0
+                ? `${seleccionados.size} certificado(s) seleccionado(s)`
+                : `${filtrados.length} certificado(s)`}
+              .
+            </p>
+            {correoOk ? (
+              <div className="mt-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+                Correo enviado correctamente.
+              </div>
+            ) : (
+              <label className="mt-4 flex flex-col text-xs font-medium text-slate-600">
+                Correo de destino
+                <input
+                  type="email"
+                  data-no-upper
+                  value={correoDestino}
+                  onChange={(e) => setCorreoDestino(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  className="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </label>
+            )}
+            {correoError && (
+              <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{correoError}</div>
+            )}
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setMostrarCorreo(false)}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                {correoOk ? 'Cerrar' : 'Cancelar'}
+              </button>
+              {!correoOk && (
+                <button
+                  onClick={enviarCorreo}
+                  disabled={enviandoCorreo}
+                  className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                >
+                  {enviandoCorreo ? 'Enviando...' : 'Enviar'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {camaraAbierta && (
