@@ -6,6 +6,7 @@ import { ModalEliminar } from '../../components/ModalEliminar'
 import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
+import { documentoCronologia } from './cronologiaDoc'
 
 const STORAGE_KEY = 'agro_cronologia_porcino'
 const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
@@ -545,9 +546,7 @@ export function CronologiaPorcino() {
       .join('')
     const win = window.open('', '_blank')
     if (!win) return
-    win.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cronologia Porcino</title><style>body{font-family:Arial,sans-serif;padding:16px;}h1{font-size:16px;}table{border-collapse:collapse;width:100%;font-size:9px;}th,td{border:1px solid #94a3b8;padding:4px;text-align:left;}th{background:#e2e8f0;}</style></head><body><h1>CRONOLOGIA DENTARIA PORCINO</h1><table><thead><tr>${encabezado}</tr></thead><tbody>${cuerpo}</tbody></table><script>window.onload=function(){window.print();}</script></body></html>`,
-    )
+    win.document.write(documentoCronologia(encabezado, cuerpo, usuario, 'PORCINA'))
     win.document.close()
   }
 
