@@ -1081,8 +1081,8 @@ export function AnteMortemPorcino() {
                   <th className="px-4 py-3">Consecutivo</th>
                   <th className="px-4 py-3">Fecha ingreso</th>
                   <th className="px-4 py-3">Fecha beneficio</th>
-                  <th className="px-4 py-3">Propietario</th>
-                  <th className="px-4 py-3">Proveedor</th>
+                  <th className="px-4 py-3">Firmador</th>
+                  <th className="px-4 py-3">Numero de guia</th>
                   <th className="px-4 py-3">Lote</th>
                   <th className="px-4 py-3">Total</th>
                   <th className="px-4 py-3">Dictamen</th>
@@ -1106,8 +1106,8 @@ export function AnteMortemPorcino() {
                     </td>
                     <td className="px-4 py-3">{r.fechaIngreso}</td>
                     <td className="px-4 py-3">{r.fechaBeneficio}</td>
-                    <td className="px-4 py-3">{r.propietario}</td>
-                    <td className="px-4 py-3">{r.proveedor}</td>
+                    <td className="px-4 py-3">{r.firmador}</td>
+                    <td className="px-4 py-3">{r.numeroGuia}</td>
                     <td className="px-4 py-3">
                       {r.loteSacrificio ? (
                         r.loteSacrificio
