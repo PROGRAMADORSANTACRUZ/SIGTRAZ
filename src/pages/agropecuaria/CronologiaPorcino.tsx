@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import ExcelJS from 'exceljs'
 import { Campo, inputClase } from '../../components/ui'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
 import { ModalEliminar } from '../../components/ModalEliminar'
 import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
+import { generarCronologiaDocx } from './cronologiaDocx'
 import { documentoCronologia } from './cronologiaDoc'
 
 const STORAGE_KEY = 'agro_cronologia_porcino'
@@ -476,58 +476,6 @@ export function CronologiaPorcino() {
     )
   }
 
-  async function exportarExcel() {
-    const datos = registrosExportar()
-    if (datos.length === 0) return
-    const columnas = Object.keys(datos[0])
-    const wb = new ExcelJS.Workbook()
-    const ws = wb.addWorksheet('Cronologia Porcino')
-    const borde = {
-      top: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
-      left: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
-      bottom: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
-      right: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
-    }
-    const filaTitulo = ws.addRow(['CRONOLOGIA DENTARIA PORCINO'])
-    ws.mergeCells(1, 1, 1, columnas.length)
-    filaTitulo.getCell(1).font = { bold: true, size: 14 }
-    filaTitulo.getCell(1).alignment = { horizontal: 'center' }
-    const filaEnc = ws.addRow(columnas)
-    filaEnc.eachCell((celda) => {
-      celda.font = { bold: true, color: { argb: 'FF1E293B' } }
-      celda.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFE2E8F0' },
-      }
-      celda.border = borde
-      celda.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-    })
-    datos.forEach((fila) => {
-      const r = ws.addRow(columnas.map((c) => (fila as Record<string, unknown>)[c]))
-      r.eachCell((celda) => {
-        celda.border = borde
-        celda.alignment = { vertical: 'middle' }
-      })
-    })
-    columnas.forEach((c, i) => {
-      const largo = Math.max(
-        c.length,
-        ...datos.map((f) => String((f as Record<string, unknown>)[c] ?? '').length),
-      )
-      ws.getColumn(i + 1).width = Math.min(Math.max(largo + 2, 10), 40)
-    })
-    const buffer = await wb.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-    const enlace = document.createElement('a')
-    enlace.href = URL.createObjectURL(blob)
-    enlace.download = 'cronologia-porcino.xlsx'
-    enlace.click()
-    URL.revokeObjectURL(enlace.href)
-  }
-
   function exportarPDF() {
     const datos = registrosExportar()
     if (datos.length === 0) return
@@ -549,6 +497,30 @@ export function CronologiaPorcino() {
     if (!win) return
     win.document.write(documentoCronologia(encabezado, cuerpo, usuario, 'PORCINA'))
     win.document.close()
+  }
+
+  async function exportarWord() {
+    const gruposSel = grupos.filter((g) => seleccionados.has(g.clave))
+    if (gruposSel.length === 0) return
+    const data = gruposSel.map((g) => ({
+      lote: g.loteSacrificio,
+      items: g.items.map((r) => ({
+        fecha: r.fecha,
+        numeroGuia: r.numeroGuia,
+        loteSacrificio: r.loteSacrificio,
+        gancho: r.gancho,
+        dientes: r.dientes,
+        edadMes: r.edadMes,
+        edadAnio: r.edadAnio,
+        observaciones: r.observaciones,
+      })),
+    }))
+    const blob = await generarCronologiaDocx(data, usuario, 'PORCINA')
+    const enlace = document.createElement('a')
+    enlace.href = URL.createObjectURL(blob)
+    enlace.download = 'cronologia-porcino.docx'
+    enlace.click()
+    URL.revokeObjectURL(enlace.href)
   }
 
   return (
@@ -820,10 +792,10 @@ export function CronologiaPorcino() {
             </span>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={exportarExcel}
-                className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+                onClick={exportarWord}
+                className="rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
               >
-                Excel
+                Word
               </button>
               <button
                 onClick={exportarPDF}
