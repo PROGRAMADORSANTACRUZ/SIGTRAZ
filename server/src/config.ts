@@ -21,4 +21,14 @@ export const config = {
     user: requerido('DB_USER', 'postgres'),
     password: requerido('DB_PASSWORD', ''),
   },
+  smtp: {
+    host: process.env.SMTP_HOST ?? 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: (process.env.SMTP_SECURE ?? 'true') === 'true',
+    user: process.env.SMTP_USER ?? 'veterinario.gruposantacruz@gmail.com',
+    password: process.env.SMTP_PASSWORD ?? '',
+    from:
+      process.env.SMTP_FROM ??
+      'Agropecuaria Santacruz <veterinario.gruposantacruz@gmail.com>',
+  },
 }

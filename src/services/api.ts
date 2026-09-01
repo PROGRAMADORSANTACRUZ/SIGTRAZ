@@ -1105,4 +1105,15 @@ export const api = {
   getEstadisticas: () => pedir<Estadisticas>('/estadisticas'),
 
   getEdicionesLog: () => pedir<EdicionLog[]>('/ediciones-log'),
+
+  enviarCorreo: (datos: {
+    destino: string
+    asunto?: string
+    mensaje?: string
+    adjuntos: { nombre: string; contenidoBase64: string; tipo?: string }[]
+  }) =>
+    pedir<{ ok: boolean }>('/correo/enviar', {
+      method: 'POST',
+      body: JSON.stringify(datos),
+    }),
 }

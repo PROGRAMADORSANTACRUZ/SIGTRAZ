@@ -72,6 +72,11 @@ export function Cronologia() {
   const [mostrarEliminar, setMostrarEliminar] = useState(false)
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
+  const [mostrarCorreo, setMostrarCorreo] = useState(false)
+  const [correoDestino, setCorreoDestino] = useState('')
+  const [enviandoCorreo, setEnviandoCorreo] = useState(false)
+  const [correoError, setCorreoError] = useState<string | null>(null)
+  const [correoOk, setCorreoOk] = useState(false)
   const [error, setError] = useState('')
   // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
   const [filtroMes, setFiltroMes] = useState(() =>
@@ -528,10 +533,11 @@ export function Cronologia() {
     URL.revokeObjectURL(enlace.href)
   }
 
-  async function exportarWord() {
+  async function construirDocxBlob(): Promise<Blob | null> {
     const gruposSel = grupos.filter((g) => seleccionados.has(g.clave))
-    if (gruposSel.length === 0) return
-    const data = gruposSel.map((g) => ({
+    const fuente = gruposSel.length > 0 ? gruposSel : grupos
+    if (fuente.length === 0) return null
+    const data = fuente.map((g) => ({
       lote: g.loteSacrificio,
       items: g.items.map((r) => ({
         fecha: r.fecha,
@@ -544,12 +550,56 @@ export function Cronologia() {
         observaciones: r.observaciones,
       })),
     }))
-    const blob = await generarCronologiaDocx(data, usuario, 'BOVINA')
+    return generarCronologiaDocx(data, usuario, 'BOVINA')
+  }
+
+  async function exportarWord() {
+    const blob = await construirDocxBlob()
+    if (!blob) return
     const enlace = document.createElement('a')
     enlace.href = URL.createObjectURL(blob)
     enlace.download = 'cronologia.docx'
     enlace.click()
     URL.revokeObjectURL(enlace.href)
+  }
+
+  async function enviarCorreo() {
+    const destino = correoDestino.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destino)) {
+      setCorreoError('Ingresa un correo valido')
+      return
+    }
+    setEnviandoCorreo(true)
+    setCorreoError(null)
+    try {
+      const blob = await construirDocxBlob()
+      if (!blob) {
+        setCorreoError('No hay registros para enviar')
+        return
+      }
+      const buffer = await blob.arrayBuffer()
+      let binario = ''
+      const bytes = new Uint8Array(buffer)
+      for (let i = 0; i < bytes.length; i++) binario += String.fromCharCode(bytes[i])
+      const base64 = btoa(binario)
+      await api.enviarCorreo({
+        destino,
+        asunto: 'Cronologia Dentaria Bovina - Agropecuaria Santacruz',
+        mensaje: 'Adjunto encontrara la cronologia dentaria bovina en formato Word.',
+        adjuntos: [
+          {
+            nombre: 'cronologia.docx',
+            contenidoBase64: base64,
+            tipo: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+        ],
+      })
+      setCorreoOk(true)
+    } catch (err) {
+      setCorreoError(err instanceof Error ? err.message : 'No se pudo enviar el correo')
+    } finally {
+      setEnviandoCorreo(false)
+    }
   }
 
   return (
@@ -832,6 +882,17 @@ export function Cronologia() {
               >
                 Excel
               </button>
+              <button
+                onClick={() => {
+                  setCorreoDestino('')
+                  setCorreoError(null)
+                  setCorreoOk(false)
+                  setMostrarCorreo(true)
+                }}
+                className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100"
+              >
+                Enviar correo
+              </button>
               {seleccionados.size > 0 && (
                 <button
                   onClick={() => {
@@ -919,6 +980,58 @@ export function Cronologia() {
           onCancelar={() => setMostrarEliminar(false)}
           onConfirmar={eliminarSeleccionados}
         />
+      )}
+
+      {mostrarCorreo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-800">Enviar cronologia por correo</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Se enviara el documento Word de{' '}
+              {seleccionados.size > 0
+                ? `${seleccionados.size} lote(s) seleccionado(s)`
+                : `${grupos.length} lote(s)`}
+              .
+            </p>
+            {correoOk ? (
+              <div className="mt-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+                Correo enviado correctamente.
+              </div>
+            ) : (
+              <label className="mt-4 flex flex-col text-xs font-medium text-slate-600">
+                Correo de destino
+                <input
+                  type="email"
+                  data-no-upper
+                  value={correoDestino}
+                  onChange={(e) => setCorreoDestino(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  className="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </label>
+            )}
+            {correoError && (
+              <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{correoError}</div>
+            )}
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setMostrarCorreo(false)}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                {correoOk ? 'Cerrar' : 'Cancelar'}
+              </button>
+              {!correoOk && (
+                <button
+                  onClick={enviarCorreo}
+                  disabled={enviandoCorreo}
+                  className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                >
+                  {enviandoCorreo ? 'Enviando...' : 'Enviar'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
