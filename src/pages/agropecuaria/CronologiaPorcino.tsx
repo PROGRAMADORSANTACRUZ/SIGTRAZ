@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import ExcelJS from 'exceljs'
 import { Campo, inputClase } from '../../components/ui'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
 import { ModalEliminar } from '../../components/ModalEliminar'
@@ -6,7 +7,6 @@ import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
 import { generarCronologiaDocx } from './cronologiaDocx'
-import { documentoCronologia } from './cronologiaDoc'
 
 const STORAGE_KEY = 'agro_cronologia_porcino'
 const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
@@ -476,27 +476,56 @@ export function CronologiaPorcino() {
     )
   }
 
-  function exportarPDF() {
+  async function exportarExcel() {
     const datos = registrosExportar()
     if (datos.length === 0) return
     const columnas = Object.keys(datos[0])
-    const escapar = (v: unknown) =>
-      String(v ?? '').replace(/[&<>]/g, (c) =>
-        c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;',
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet('Cronologia Porcino')
+    const borde = {
+      top: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
+      left: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
+      bottom: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
+      right: { style: 'thin' as const, color: { argb: 'FF94A3B8' } },
+    }
+    const filaTitulo = ws.addRow(['CRONOLOGIA DENTARIA PORCINO'])
+    ws.mergeCells(1, 1, 1, columnas.length)
+    filaTitulo.getCell(1).font = { bold: true, size: 14 }
+    filaTitulo.getCell(1).alignment = { horizontal: 'center' }
+    const filaEnc = ws.addRow(columnas)
+    filaEnc.eachCell((celda) => {
+      celda.font = { bold: true, color: { argb: 'FF1E293B' } }
+      celda.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE2E8F0' },
+      }
+      celda.border = borde
+      celda.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+    })
+    datos.forEach((fila) => {
+      const r = ws.addRow(columnas.map((c) => (fila as Record<string, unknown>)[c]))
+      r.eachCell((celda) => {
+        celda.border = borde
+        celda.alignment = { vertical: 'middle' }
+      })
+    })
+    columnas.forEach((c, i) => {
+      const largo = Math.max(
+        c.length,
+        ...datos.map((f) => String((f as Record<string, unknown>)[c] ?? '').length),
       )
-    const encabezado = columnas.map((c) => `<th>${escapar(c)}</th>`).join('')
-    const cuerpo = datos
-      .map(
-        (fila) =>
-          `<tr>${columnas
-            .map((c) => `<td>${escapar((fila as Record<string, unknown>)[c])}</td>`)
-            .join('')}</tr>`,
-      )
-      .join('')
-    const win = window.open('', '_blank')
-    if (!win) return
-    win.document.write(documentoCronologia(encabezado, cuerpo, usuario, 'PORCINA'))
-    win.document.close()
+      ws.getColumn(i + 1).width = Math.min(Math.max(largo + 2, 10), 40)
+    })
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const enlace = document.createElement('a')
+    enlace.href = URL.createObjectURL(blob)
+    enlace.download = 'cronologia-porcino.xlsx'
+    enlace.click()
+    URL.revokeObjectURL(enlace.href)
   }
 
   async function exportarWord() {
@@ -798,10 +827,10 @@ export function CronologiaPorcino() {
                 Word
               </button>
               <button
-                onClick={exportarPDF}
-                className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-100"
+                onClick={exportarExcel}
+                className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
               >
-                PDF
+                Excel
               </button>
               {seleccionados.size > 0 && (
                 <button
