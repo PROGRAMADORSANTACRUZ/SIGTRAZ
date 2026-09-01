@@ -188,6 +188,7 @@ export function Layout({
     setVista(v)
     guardarVista(v)
   }
+  const esVistaDispositivo = !esPreview && vista !== 'escritorio'
 
   // Dentro del iframe de vista previa: marca el <html> segun el dispositivo
   // para que el CSS ponga los formularios en cascada (menos columnas).
@@ -377,15 +378,16 @@ export function Layout({
           <span className="font-bold text-slate-900">{titulo}</span>
           <BotonTema className="ml-auto rounded-md p-1.5 text-slate-600 hover:bg-slate-100" />
         </div>
-        {mostrarPuntoVenta && <SelectorPuntoVenta />}
-        <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-          {accesoDenegado ? <Navigate to={rutaHome} replace /> : <Outlet />}
-        </div>
+        {mostrarPuntoVenta && !esVistaDispositivo && <SelectorPuntoVenta />}
+        {esVistaDispositivo ? (
+          <VistaDispositivo vista={vista as 'tablet' | 'celular'} />
+        ) : (
+          <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+            {accesoDenegado ? <Navigate to={rutaHome} replace /> : <Outlet />}
+          </div>
+        )}
       </main>
     </div>
-    {!esPreview && vista !== 'escritorio' && (
-      <VistaDispositivo vista={vista} onCambiar={cambiarVista} />
-    )}
     </>
   )
 }
@@ -516,13 +518,7 @@ function SelectorVista({
 // Muestra la app a pantalla completa dentro del ancho de un tablet o celular,
 // usando un iframe para que el diseno responsive real (el de un movil) se
 // active. Ocupa todo el alto para que no se corte nada abajo.
-function VistaDispositivo({
-  vista,
-  onCambiar,
-}: {
-  vista: 'tablet' | 'celular'
-  onCambiar: (v: Vista) => void
-}) {
+function VistaDispositivo({ vista }: { vista: 'tablet' | 'celular' }) {
   const dim = DIMENSIONES[vista]
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
@@ -550,35 +546,14 @@ function VistaDispositivo({
   }, [vista])
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
-      <div className="flex shrink-0 items-center justify-center gap-3 bg-slate-950 px-3 py-3">
-        {OPCIONES_VISTA.map((o) => (
-          <button
-            key={o.v}
-            type="button"
-            onClick={() => onCambiar(o.v)}
-            aria-pressed={vista === o.v}
-            className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-colors ${
-              vista === o.v
-                ? 'bg-brand-600 text-white'
-                : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white'
-            }`}
-          >
-            {o.icono}
-            <span>{o.label}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-1 justify-center overflow-hidden bg-slate-800">
-        <iframe
-          ref={iframeRef}
-          src={`${window.location.pathname}?dispositivo=${vista}`}
-          title={`Vista ${dim.etiqueta}`}
-          className="h-full w-full border-0 bg-white shadow-2xl"
-          style={{ maxWidth: dim.ancho }}
-        />
-      </div>
+    <div className="flex min-h-[85vh] flex-1 justify-center overflow-hidden bg-slate-800 p-3">
+      <iframe
+        ref={iframeRef}
+        src={`${window.location.pathname}?dispositivo=${vista}`}
+        title={`Vista ${dim.etiqueta}`}
+        className="h-full w-full border-0 bg-white shadow-2xl"
+        style={{ maxWidth: dim.ancho }}
+      />
     </div>
   )
 }
