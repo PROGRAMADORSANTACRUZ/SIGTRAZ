@@ -181,6 +181,19 @@ export function Layout({
     guardarVista(v)
   }
 
+  // Dentro del iframe de vista previa: marca el <html> segun el dispositivo
+  // para que el CSS ponga los formularios en cascada (menos columnas).
+  useEffect(() => {
+    if (!esPreview) return
+    const d = new URLSearchParams(window.location.search).get('dispositivo')
+    const clase =
+      d === 'celular' ? 'vista-celular' : d === 'tablet' ? 'vista-tablet' : ''
+    if (clase) document.documentElement.classList.add(clase)
+    return () => {
+      document.documentElement.classList.remove('vista-celular', 'vista-tablet')
+    }
+  }, [esPreview])
+
   // Cierra el menu al navegar a otra ruta.
   useEffect(() => {
     setMenuAbierto(false)
@@ -552,7 +565,7 @@ function VistaDispositivo({
       <div className="flex flex-1 justify-center overflow-hidden bg-slate-800">
         <iframe
           ref={iframeRef}
-          src={window.location.pathname}
+          src={`${window.location.pathname}?dispositivo=${vista}`}
           title={`Vista ${dim.etiqueta}`}
           className="h-full w-full border-0 bg-white shadow-2xl"
           style={{ maxWidth: dim.ancho }}

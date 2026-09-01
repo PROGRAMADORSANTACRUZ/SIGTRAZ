@@ -174,3 +174,22 @@ html.dark body {
   color: #e2e8f0;
 }
 
+/* ==========================================================================
+   VISTA TABLET / CELULAR (cascada)
+   Cuando la app se abre dentro de la vista de dispositivo, se marca <html> con
+   `vista-celular` o `vista-tablet`. Aqui se fuerza que todas las rejillas de
+   formularios se apilen: 1 columna en celular y 2 en tablet, para que no queden
+   los campos apretados y sea comodo al tacto.
+   ========================================================================== */
+html.vista-celular [class*='grid-cols-'] {
+  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+}
+html.vista-tablet [class*='grid-cols-'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+/* Evita que un campo con col-span grande deje huecos al reducir columnas. */
+html.vista-celular [class*='col-span-'],
+html.vista-tablet [class*='col-span-'] {
+  grid-column: auto !important;
+}
+
