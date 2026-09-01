@@ -465,6 +465,7 @@ export function Cronologia() {
     return fuente.flatMap((g) =>
       g.items.map((r) => ({
         FECHA: r.fecha,
+        'NUMERO DE GUIA': r.numeroGuia,
         'LOTE DE SACRIFICIO': r.loteSacrificio,
         GANCHO: r.gancho,
         'N DIENTES': r.dientes,
