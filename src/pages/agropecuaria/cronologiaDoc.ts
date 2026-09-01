@@ -24,7 +24,7 @@ const ESTILOS =
   `table.datos th{background:#4caf50;color:#fff;padding:8px 6px;text-transform:uppercase;font-size:10px;letter-spacing:.3px;border:1px solid #43a047;text-align:center;}` +
   `table.datos td{border:1px solid #c8e6c9;padding:6px 8px;color:#2e7d32;text-align:center;}` +
   `table.datos tbody tr:nth-child(even){background:#f1f8e9;}` +
-  `.firma{margin-top:70px;text-align:center;}` +
+  `.firma{margin-top:100px;text-align:center;}` +
   `.firma img{width:170px;height:auto;display:block;margin:0 auto -6px;}` +
   `.firma .nombre{font-weight:bold;border-top:1px solid #333;display:inline-block;padding:6px 24px 0;}` +
   `.firma .cargo{margin-top:2px;font-size:12px;}` +
