@@ -23,6 +23,25 @@ const yMin = 0
 const yMax = 42
 const yStep = 3
 
+// Construye un trazo suave (Catmull-Rom -> Bezier) que pasa por todos los puntos.
+function lineaSuave(pts: [number, number][]): string {
+  if (pts.length === 0) return ''
+  if (pts.length < 3) return 'M ' + pts.map((p) => `${p[0]},${p[1]}`).join(' L ')
+  let d = `M ${pts[0][0]},${pts[0][1]}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[i + 2] || p2
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6
+    d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`
+  }
+  return d
+}
+
 export function GraficaCurvaCanales({ titulo, canales, onCerrar }: Props) {
   const [limite, setLimite] = useState('7')
 
@@ -143,8 +162,8 @@ export function GraficaCurvaCanales({ titulo, canales, onCerrar }: Props) {
 
                 {series.map((s) => (
                   <g key={s.numero}>
-                    <polyline
-                      points={s.temps.map((t, i) => `${x(i)},${y(t)}`).join(' ')}
+                    <path
+                      d={lineaSuave(s.temps.map((t, i) => [x(i), y(t)]))}
                       fill="none"
                       stroke={s.color}
                       strokeWidth={2.5}
