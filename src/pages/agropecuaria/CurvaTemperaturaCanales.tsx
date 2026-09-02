@@ -611,7 +611,7 @@ export function CurvaTemperaturaCanales() {
                       return (
                         <div
                           key={l.id}
-                          className="w-44 overflow-hidden rounded-lg border border-slate-200 bg-white"
+                          className="w-52 overflow-hidden rounded-lg border border-slate-200 bg-white"
                         >
                           <div
                             className={`px-2 py-1.5 text-center text-white ${
@@ -622,11 +622,11 @@ export function CurvaTemperaturaCanales() {
                               {caliente ? 'CALIENTE' : 'FRÍO'}
                             </div>
                             {esAdmin ? (
-                              <div className="mt-1 flex flex-col gap-1">
+                              <div className="mt-1 flex items-center justify-center gap-1">
                                 <input
                                   type="date"
                                   data-no-upper
-                                  className="rounded px-1 py-0.5 text-[11px] text-slate-700"
+                                  className="min-w-0 flex-1 rounded px-1 py-0.5 text-[11px] text-slate-700"
                                   value={l.fecha || ''}
                                   onChange={(e) =>
                                     actualizarLectura(c.id, l.id, 'fecha', e.target.value)
@@ -635,7 +635,7 @@ export function CurvaTemperaturaCanales() {
                                 <input
                                   type="time"
                                   data-no-upper
-                                  className="rounded px-1 py-0.5 text-[11px] text-slate-700"
+                                  className="min-w-0 flex-1 rounded px-1 py-0.5 text-[11px] text-slate-700"
                                   value={l.hora}
                                   onChange={(e) =>
                                     actualizarLectura(c.id, l.id, 'hora', e.target.value)
