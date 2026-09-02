@@ -31,6 +31,7 @@ function cargarAnteMortem(): AnteMortemLite[] {
 
 interface Medicion {
   id: string
+  caliente: string
   hora: string
   canal: string
   tcCanal: string
@@ -57,6 +58,7 @@ interface Orden {
 
 const medicionVacia = (verificado = ''): Medicion => ({
   id: crypto.randomUUID(),
+  caliente: verificado,
   hora: new Date().toTimeString().slice(0, 5),
   canal: '',
   tcCanal: '',
@@ -422,11 +424,22 @@ export function CurvaTemperaturaCanalesPorcino() {
               {form.mediciones.map((m, i) => (
                 <div
                   key={m.id}
-                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
+                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_1fr_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
                 >
                   <div className="flex h-9 items-center text-sm font-semibold text-slate-400">
                     #{i + 1}
                   </div>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-slate-600">
+                      Caliente
+                    </span>
+                    <input
+                      data-no-upper
+                      className={inputBase}
+                      value={m.caliente}
+                      onChange={(e) => actualizarMedicion(m.id, 'caliente', e.target.value)}
+                    />
+                  </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
                       Hora
