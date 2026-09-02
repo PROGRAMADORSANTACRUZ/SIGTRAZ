@@ -387,7 +387,7 @@ export function CurvaTemperaturaCanalesPorcino() {
           className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-12">
-            <label className="block lg:col-span-2">
+            <label className="block lg:col-span-1">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Consecutivo <span className="text-rose-500">*</span>
               </span>
@@ -411,7 +411,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                 buscarPlaceholder="Buscar firmador..."
               />
             </label>
-            <label className="block lg:col-span-2">
+            <label className="block lg:col-span-1">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Lote <span className="text-rose-500">*</span>
               </span>
@@ -425,7 +425,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                 buscarPlaceholder="Buscar lote..."
               />
             </label>
-            <label className="block lg:col-span-2">
+            <label className="block lg:col-span-3">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Número de guía <span className="text-rose-500">*</span>
               </span>
@@ -440,7 +440,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                 buscarPlaceholder="Buscar guía..."
               />
             </label>
-            <label className="block lg:col-span-1">
+            <label className="block lg:col-span-2">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Cuarto frío <span className="text-rose-500">*</span>
               </span>
