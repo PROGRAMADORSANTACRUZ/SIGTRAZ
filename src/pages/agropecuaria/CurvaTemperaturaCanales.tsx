@@ -130,6 +130,7 @@ export function CurvaTemperaturaCanales() {
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const [error, setError] = useState('')
   const { usuario } = useAuth()
+  const esAdmin = usuario?.rol === 'Administrador'
   const firmaUsuario =
     [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() ||
     usuario?.email ||
@@ -504,10 +505,11 @@ export function CurvaTemperaturaCanales() {
                     </span>
                     <input
                       type="date"
-                      readOnly
+                      readOnly={!esAdmin}
                       data-no-upper
-                      className={inputRO}
+                      className={esAdmin ? inputBase : inputRO}
                       value={m.fecha || ''}
+                      onChange={(e) => actualizarMedicion(m.id, 'fecha', e.target.value)}
                     />
                   </label>
                   <label className="block">
@@ -516,10 +518,11 @@ export function CurvaTemperaturaCanales() {
                     </span>
                     <input
                       type="time"
-                      readOnly
+                      readOnly={!esAdmin}
                       data-no-upper
-                      className={inputRO}
+                      className={esAdmin ? inputBase : inputRO}
                       value={m.hora}
+                      onChange={(e) => actualizarMedicion(m.id, 'hora', e.target.value)}
                     />
                   </label>
                   <label className="block">
