@@ -328,16 +328,6 @@ export function CurvaTemperaturaCanalesPorcino() {
     }))
   }
 
-  function quitarCanal(idCanal: string) {
-    setForm((prev) => ({
-      ...prev,
-      canales:
-        prev.canales.length > 1
-          ? prev.canales.filter((c) => c.id !== idCanal)
-          : prev.canales,
-    }))
-  }
-
   function agregarLectura(idCanal: string) {
     setForm((prev) => ({
       ...prev,
@@ -597,15 +587,6 @@ export function CurvaTemperaturaCanalesPorcino() {
                       Al escribir el número de canal se crea la 1ª lectura con la
                       fecha y hora actuales.
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => quitarCanal(c.id)}
-                      disabled={form.canales.length === 1}
-                      title="Quitar canal"
-                      className="ml-auto h-9 shrink-0 rounded-md border border-rose-300 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Quitar canal
-                    </button>
                   </div>
 
                   <div className="flex flex-wrap items-start gap-2">
