@@ -25,7 +25,7 @@ import {
   hallazgosSeed,
   dictamen2Seed,
 } from './datosCatalogos'
-import { useCatalogo } from './catalogosStore'
+import { agregarACatalogo, useCatalogo } from './catalogosStore'
 
 interface RegistroAnteMortem {
   id: string
@@ -674,6 +674,10 @@ export function AnteMortem() {
       return
     }
     setError('')
+    // Si se escribieron a mano, se "crean" en el catalogo para la proxima vez.
+    agregarACatalogo('Propietarios', propietariosSeed, form.propietario)
+    agregarACatalogo('Proveedores', proveedoresSeed, form.proveedor)
+    agregarACatalogo('Firmadores', firmadoresSeed, form.firmador)
     const referencia =
       form.loteSacrificio || form.propietario || 'REGISTRO SIN LOTE'
     if (editandoId) {

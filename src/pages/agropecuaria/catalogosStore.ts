@@ -24,6 +24,20 @@ export function guardarCatalogo(titulo: string, items: string[]) {
   window.dispatchEvent(new Event(EVENTO))
 }
 
+// Agrega un valor al catalogo si no existe (ignora mayusculas/espacios). Sirve
+// para "crear" propietarios, proveedores, etc. escritos a mano al guardar.
+export function agregarACatalogo(
+  titulo: string,
+  semilla: string[],
+  valor: string,
+) {
+  const limpio = valor.trim()
+  if (!limpio) return
+  const actuales = leerCatalogo(titulo, semilla)
+  if (actuales.some((o) => o.toLowerCase() === limpio.toLowerCase())) return
+  guardarCatalogo(titulo, [...actuales, limpio].sort((a, b) => a.localeCompare(b)))
+}
+
 export function useCatalogo(titulo: string, semilla: string[]): string[] {
   const [items, setItems] = useState<string[]>(() =>
     leerCatalogo(titulo, semilla),
