@@ -572,15 +572,13 @@ export function CurvaTemperaturaCanalesPorcino() {
                   key={c.id}
                   className="space-y-3 rounded-lg border border-slate-200 bg-white p-3"
                 >
-                  <div className="flex flex-wrap items-end gap-3">
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium text-slate-600">
-                        Canal <span className="text-rose-500">*</span>
-                      </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-white">
+                      <span className="text-sm font-bold">Canal</span>
                       <input
                         inputMode="numeric"
                         data-no-upper
-                        className={`${inputBase} w-28`}
+                        className="w-24 rounded-md border border-slate-300 bg-white px-2 py-1 text-center text-sm font-bold text-slate-800 focus:outline-none"
                         value={c.numero}
                         onChange={(e) =>
                           actualizarCanal(
@@ -590,25 +588,17 @@ export function CurvaTemperaturaCanalesPorcino() {
                           )
                         }
                       />
-                    </label>
-                    <label className="block min-w-[180px] flex-1">
-                      <span className="mb-1 block text-xs font-medium text-slate-600">
-                        Verificado por <span className="text-rose-500">*</span>
-                      </span>
-                      <input
-                        className={inputBase}
-                        value={c.verificado}
-                        onChange={(e) =>
-                          actualizarCanal(c.id, 'verificado', e.target.value)
-                        }
-                      />
-                    </label>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      Al escribir el número de canal se crea la 1ª lectura con la
+                      fecha y hora actuales.
+                    </span>
                     <button
                       type="button"
                       onClick={() => quitarCanal(c.id)}
                       disabled={form.canales.length === 1}
                       title="Quitar canal"
-                      className="h-9 shrink-0 rounded-md border border-rose-300 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="ml-auto h-9 shrink-0 rounded-md border border-rose-300 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Quitar canal
                     </button>
@@ -624,43 +614,41 @@ export function CurvaTemperaturaCanalesPorcino() {
                           className="w-44 overflow-hidden rounded-lg border border-slate-200 bg-white"
                         >
                           <div
-                            className={`px-2 py-1.5 text-center text-xs font-bold text-white ${
+                            className={`px-2 py-1.5 text-center text-white ${
                               caliente ? 'bg-red-600' : 'bg-blue-600'
                             }`}
                           >
-                            {caliente ? 'CALIENTE' : 'FRÍO'}
+                            <div className="text-xs font-bold">
+                              {caliente ? 'CALIENTE' : 'FRÍO'}
+                            </div>
+                            {esAdmin ? (
+                              <div className="mt-1 flex flex-col gap-1">
+                                <input
+                                  type="date"
+                                  data-no-upper
+                                  className="rounded px-1 py-0.5 text-[11px] text-slate-700"
+                                  value={l.fecha || ''}
+                                  onChange={(e) =>
+                                    actualizarLectura(c.id, l.id, 'fecha', e.target.value)
+                                  }
+                                />
+                                <input
+                                  type="time"
+                                  data-no-upper
+                                  className="rounded px-1 py-0.5 text-[11px] text-slate-700"
+                                  value={l.hora}
+                                  onChange={(e) =>
+                                    actualizarLectura(c.id, l.id, 'hora', e.target.value)
+                                  }
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-[11px] font-medium">
+                                {`${fechaCorta(l.fecha)} · ${l.hora}`}
+                              </div>
+                            )}
                           </div>
                           <div className="space-y-2 p-2">
-                            <label className="block">
-                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
-                                Fecha <span className="text-rose-500">*</span>
-                              </span>
-                              <input
-                                type="date"
-                                readOnly={!esAdmin}
-                                data-no-upper
-                                className={`${esAdmin ? inputBase : inputRO} px-2 py-1 text-xs`}
-                                value={l.fecha || ''}
-                                onChange={(e) =>
-                                  actualizarLectura(c.id, l.id, 'fecha', e.target.value)
-                                }
-                              />
-                            </label>
-                            <label className="block">
-                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
-                                Hora <span className="text-rose-500">*</span>
-                              </span>
-                              <input
-                                type="time"
-                                readOnly={!esAdmin}
-                                data-no-upper
-                                className={`${esAdmin ? inputBase : inputRO} px-2 py-1 text-xs`}
-                                value={l.hora}
-                                onChange={(e) =>
-                                  actualizarLectura(c.id, l.id, 'hora', e.target.value)
-                                }
-                              />
-                            </label>
                             <label className="block">
                               <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
                                 T°C canal <span className="text-rose-500">*</span>
@@ -729,6 +717,16 @@ export function CurvaTemperaturaCanalesPorcino() {
                       + Lectura
                     </button>
                   </div>
+                  <label className="block max-w-xs">
+                    <span className="mb-1 block text-xs font-medium text-slate-600">
+                      Verificado por <span className="text-rose-500">*</span>
+                    </span>
+                    <input
+                      className={inputBase}
+                      value={c.verificado}
+                      onChange={(e) => actualizarCanal(c.id, 'verificado', e.target.value)}
+                    />
+                  </label>
                 </div>
               ))}
               <button
