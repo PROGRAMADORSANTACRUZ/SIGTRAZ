@@ -14,9 +14,6 @@ export interface TokenPayload {
   sid?: string
 }
 
-/** Minutos de inactividad tras los que la sesion se cierra automaticamente. */
-export const INACTIVIDAD_MS = 5 * 60 * 1000
-
 /** Crea una fila de sesion y devuelve su id (para incrustarlo en el token). */
 export async function crearSesion(
   usuarioId: string,
@@ -60,15 +57,6 @@ export async function sesionSigueActiva(
   )
   const s = filas[0]
   if (!s || s.activa === false) return false
-  const inactivaMs =
-    Date.now() -
-    new Date(s.ultima_actividad as string | number | Date).getTime()
-  if (inactivaMs > INACTIVIDAD_MS) {
-    await query('UPDATE sesiones SET activa = false WHERE id = $1', [
-      payload.sid,
-    ])
-    return false
-  }
   return true
 }
 
@@ -148,17 +136,6 @@ export function requireAuth(
       const sesion = filas[0]
       if (!sesion || sesion.activa === false) {
         res.status(401).json({ error: 'Sesion cerrada' })
-        return
-      }
-      const inactivaMs =
-        Date.now() -
-        new Date(sesion.ultima_actividad as string | number | Date).getTime()
-      if (inactivaMs > INACTIVIDAD_MS) {
-        query('UPDATE sesiones SET activa = false WHERE id = $1', [payload.sid])
-          .catch(() => {})
-          .finally(() => {
-            res.status(401).json({ error: 'Sesion cerrada por inactividad' })
-          })
         return
       }
       query('UPDATE sesiones SET ultima_actividad = now() WHERE id = $1', [

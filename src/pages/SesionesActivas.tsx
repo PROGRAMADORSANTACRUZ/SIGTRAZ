@@ -82,8 +82,7 @@ export function SesionesActivas() {
             Sesiones activas
           </h1>
           <p className="text-sm text-slate-500">
-            Usuarios conectados en este momento. Las sesiones se cierran solas
-            tras 5 minutos de inactividad.
+            Usuarios conectados en este momento.
           </p>
         </div>
         <div className="flex items-center gap-3">

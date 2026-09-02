@@ -12,14 +12,9 @@ function soloAdmin(req: Request, res: Response, next: NextFunction): void {
   next()
 }
 
-// Lista las sesiones activas (usuarios conectados). Antes de listar cierra las
-// que hayan superado los 5 minutos de inactividad, para no mostrarlas.
+// Lista las sesiones activas (usuarios conectados).
 sesionesRouter.get('/', soloAdmin, async (req, res, next) => {
   try {
-    await query(
-      `UPDATE sesiones SET activa = false
-        WHERE activa AND ultima_actividad < now() - interval '5 minutes'`,
-    )
     const filas = await query(
       `SELECT s.id, s.usuario_id, s.creada_en, s.ultima_actividad, s.user_agent,
               u.nombre, u.apellido, u.email, u.rol, u.empresa

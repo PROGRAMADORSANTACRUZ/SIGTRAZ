@@ -4,16 +4,12 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { api, getToken, setToken, setPuntoVentaActivo } from '../services/api'
 import { precargarAgro } from '../services/agroSync'
 import type { Usuario } from '../types/trazabilidad'
-
-/** Minutos de inactividad tras los que se cierra la sesion automaticamente. */
-const INACTIVIDAD_MS = 5 * 60 * 1000
 
 interface AuthContextValue {
   usuario: Usuario | null
@@ -63,39 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsuario(null)
   }, [])
 
-  // Cierre automatico por inactividad: cualquier actividad del usuario reinicia
-  // el temporizador de 5 minutos; si se agota, se cierra la sesion.
-  const temporizador = useRef<number | undefined>(undefined)
-  useEffect(() => {
-    if (!usuario) return
-
-    const reiniciar = () => {
-      if (temporizador.current) window.clearTimeout(temporizador.current)
-      temporizador.current = window.setTimeout(() => {
-        logout()
-      }, INACTIVIDAD_MS)
-    }
-
-    const eventos: (keyof WindowEventMap)[] = [
-      'mousemove',
-      'mousedown',
-      'keydown',
-      'touchstart',
-      'scroll',
-      'click',
-    ]
-    eventos.forEach((ev) => window.addEventListener(ev, reiniciar, { passive: true }))
-    reiniciar()
-
-    return () => {
-      if (temporizador.current) window.clearTimeout(temporizador.current)
-      eventos.forEach((ev) => window.removeEventListener(ev, reiniciar))
-    }
-  }, [usuario, logout])
-
   // Latido: cada 15 s comprueba si la sesion sigue viva en el servidor. Si un
-  // administrador la cerro (o expiro por inactividad), expulsa al usuario al
-  // instante sin esperar a que haga otra accion.
+  // administrador la cerro, expulsa al usuario al instante sin esperar a que
+  // haga otra accion.
   useEffect(() => {
     if (!usuario) return
     const id = window.setInterval(() => {
