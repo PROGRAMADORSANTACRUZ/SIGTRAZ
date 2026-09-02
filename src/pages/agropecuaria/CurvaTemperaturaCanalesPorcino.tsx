@@ -126,6 +126,7 @@ export function CurvaTemperaturaCanalesPorcino() {
   const [eliminarId, setEliminarId] = useState<string | null>(null)
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const { usuario } = useAuth()
   const firmaUsuario =
     [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() ||
@@ -204,6 +205,23 @@ export function CurvaTemperaturaCanalesPorcino() {
     setForm((prev) => ({ ...prev, [campo]: valor }))
   }
 
+  // Al elegir el lote se autocompleta la guia asociada en Ante Mortem.
+  function elegirLote(v: string) {
+    const guias = Array.from(
+      new Set(
+        anteMortem
+          .filter((r) => r.firmador === form.firmador && r.loteSacrificio === v)
+          .map((r) => r.numeroGuia)
+          .filter(Boolean),
+      ),
+    )
+    setForm((prev) => ({
+      ...prev,
+      lote: v,
+      numeroGuia: guias.length ? guias[0] : '',
+    }))
+  }
+
   function actualizarMedicion<K extends keyof Omit<Medicion, 'id'>>(
     idMedicion: string,
     campo: K,
@@ -237,6 +255,7 @@ export function CurvaTemperaturaCanalesPorcino() {
   function abrirNuevo() {
     const ahora = new Date()
     setAnteMortem(cargarAnteMortem())
+    setError('')
     setForm({
       ...formVacio(firmaUsuario),
       consecutivo: siguienteConsecutivo(ordenes),
@@ -248,6 +267,7 @@ export function CurvaTemperaturaCanalesPorcino() {
 
   function editar(o: Orden) {
     setAnteMortem(cargarAnteMortem())
+    setError('')
     const { id: _id, ...datos } = o
     setForm({
       ...formVacio(firmaUsuario),
@@ -268,7 +288,34 @@ export function CurvaTemperaturaCanalesPorcino() {
     guardarOrden(true)
   }
 
+  // Todos los datos son obligatorios; devuelve el primer faltante.
+  function validar(): string {
+    if (!form.firmador.trim()) return 'Selecciona el firmador.'
+    if (!form.lote.trim()) return 'Selecciona el lote.'
+    if (!form.numeroGuia.trim()) return 'Ingresa el número de guía.'
+    if (!form.cuartoFrio.trim()) return 'Selecciona el cuarto frío.'
+    for (let i = 0; i < form.mediciones.length; i++) {
+      const m = form.mediciones[i]
+      const n = i + 1
+      if (!m.caliente.trim()) return `Medición #${n}: ingresa Caliente.`
+      if (!m.hora.trim()) return `Medición #${n}: ingresa la hora.`
+      if (!m.canal.trim()) return `Medición #${n}: ingresa el canal.`
+      if (!m.tcCanal.trim()) return `Medición #${n}: ingresa T°C canal.`
+      if (!m.tcCuarto.trim()) return `Medición #${n}: ingresa T°C cuarto.`
+      if (!(i === 0 && !editandoId) && !m.hp.trim())
+        return `Medición #${n}: ingresa HP.`
+      if (!m.verificado.trim()) return `Medición #${n}: ingresa Verificado por.`
+    }
+    return ''
+  }
+
   function guardarOrden(finalizado: boolean) {
+    const faltante = validar()
+    if (faltante) {
+      setError(faltante)
+      return
+    }
+    setError('')
     const datos = { ...form, finalizado: finalizado || Boolean(form.finalizado) }
     if (editandoId) {
       setOrdenes((prev) =>
@@ -342,19 +389,19 @@ export function CurvaTemperaturaCanalesPorcino() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-12">
             <label className="block lg:col-span-2">
               <span className="mb-1 block text-sm font-medium text-slate-700">
-                Consecutivo
+                Consecutivo <span className="text-rose-500">*</span>
               </span>
               <input readOnly data-no-upper className={inputRO} value={form.consecutivo} />
             </label>
             <label className="block lg:col-span-2">
               <span className="mb-1 block text-sm font-medium text-slate-700">
-                Fecha
+                Fecha <span className="text-rose-500">*</span>
               </span>
               <input type="date" readOnly data-no-upper className={inputRO} value={form.fecha} />
             </label>
             <label className="block lg:col-span-3">
               <span className="mb-1 block text-sm font-medium text-slate-700">
-                Firmador
+                Firmador <span className="text-rose-500">*</span>
               </span>
               <SelectorBuscable
                 opciones={firmadoresDelDia}
@@ -366,12 +413,12 @@ export function CurvaTemperaturaCanalesPorcino() {
             </label>
             <label className="block lg:col-span-2">
               <span className="mb-1 block text-sm font-medium text-slate-700">
-                Lote
+                Lote <span className="text-rose-500">*</span>
               </span>
               <SelectorBuscable
                 opciones={lotesDelDia}
                 value={form.lote}
-                onChange={(v) => actualizar('lote', v)}
+                onChange={elegirLote}
                 placeholder={
                   form.firmador ? 'Selecciona lote' : 'Elige firmador'
                 }
@@ -380,7 +427,7 @@ export function CurvaTemperaturaCanalesPorcino() {
             </label>
             <label className="block lg:col-span-2">
               <span className="mb-1 block text-sm font-medium text-slate-700">
-                Número de guía
+                Número de guía <span className="text-rose-500">*</span>
               </span>
               <SelectorBuscable
                 opciones={guiasAsociadas}
@@ -395,7 +442,7 @@ export function CurvaTemperaturaCanalesPorcino() {
             </label>
             <label className="block lg:col-span-1">
               <span className="mb-1 block text-sm font-medium text-slate-700">
-                Cuarto frío
+                Cuarto frío <span className="text-rose-500">*</span>
               </span>
               <SelectorBuscable
                 opciones={cuartosFrios}
@@ -431,7 +478,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                   </div>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Caliente
+                      Caliente <span className="text-rose-500">*</span>
                     </span>
                     <input
                       data-no-upper
@@ -442,7 +489,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Hora
+                      Hora <span className="text-rose-500">*</span>
                     </span>
                     <input
                       type="time"
@@ -454,7 +501,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Canal
+                      Canal <span className="text-rose-500">*</span>
                     </span>
                     <input
                       inputMode="numeric"
@@ -468,7 +515,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      T°C canal
+                      T°C canal <span className="text-rose-500">*</span>
                     </span>
                     <input
                       inputMode="decimal"
@@ -482,7 +529,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      T°C cuarto
+                      T°C cuarto <span className="text-rose-500">*</span>
                     </span>
                     <input
                       inputMode="decimal"
@@ -496,7 +543,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      HP
+                      HP <span className="text-rose-500">*</span>
                     </span>
                     <input
                       inputMode="decimal"
@@ -512,7 +559,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Verificado por
+                      Verificado por <span className="text-rose-500">*</span>
                     </span>
                     <input
                       className={inputBase}
@@ -534,12 +581,18 @@ export function CurvaTemperaturaCanalesPorcino() {
             </div>
           </div>
 
+          {error && (
+            <p className="rounded-md bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {error}
+            </p>
+          )}
           <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => {
                 setMostrarForm(false)
                 setEditandoId(null)
+                setError('')
               }}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
