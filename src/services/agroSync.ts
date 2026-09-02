@@ -83,15 +83,11 @@ export async function precargarAgro(): Promise<void> {
     try {
       for (const { clave, valor } of items) {
         if (!esClaveAgro(clave)) continue
+        // El servidor es la fuente de verdad para las claves que ya conoce
+        // (incluye listas vacias tras una eliminacion). Aplicamos siempre su
+        // valor para que las eliminaciones hechas en otro equipo se reflejen
+        // aqui y no reaparezcan registros borrados.
         const remoto = JSON.stringify(valor)
-        const local = localStorage.getItem(clave)
-        // Si este dispositivo tiene datos y el servidor esta vacio, NO los
-        // pisamos: conservamos lo local y lo subimos para restaurar el servidor.
-        if (local != null && !esVacio(local) && esVacio(remoto)) {
-          snapshotServidor.set(clave, local)
-          api.putAgroKv(clave, JSON.parse(local)).catch(() => {})
-          continue
-        }
         snapshotServidor.set(clave, remoto)
         localStorage.setItem(clave, remoto)
       }
