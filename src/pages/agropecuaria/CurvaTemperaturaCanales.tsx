@@ -386,20 +386,20 @@ export function CurvaTemperaturaCanales() {
           onSubmit={guardar}
           className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-12">
-            <label className="block lg:col-span-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-[7rem_7rem_minmax(0,1fr)_7rem_minmax(0,1fr)_8rem]">
+            <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Consecutivo <span className="text-rose-500">*</span>
               </span>
               <input readOnly data-no-upper className={inputRO} value={form.consecutivo} />
             </label>
-            <label className="block lg:col-span-1">
+            <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Fecha <span className="text-rose-500">*</span>
               </span>
               <input type="date" readOnly data-no-upper className={inputRO} value={form.fecha} />
             </label>
-            <label className="block lg:col-span-3">
+            <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Firmador <span className="text-rose-500">*</span>
               </span>
@@ -411,7 +411,7 @@ export function CurvaTemperaturaCanales() {
                 buscarPlaceholder="Buscar firmador..."
               />
             </label>
-            <label className="block lg:col-span-1">
+            <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Lote <span className="text-rose-500">*</span>
               </span>
@@ -425,7 +425,7 @@ export function CurvaTemperaturaCanales() {
                 buscarPlaceholder="Buscar lote..."
               />
             </label>
-            <label className="block lg:col-span-3">
+            <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Número de guía <span className="text-rose-500">*</span>
               </span>
@@ -440,9 +440,9 @@ export function CurvaTemperaturaCanales() {
                 buscarPlaceholder="Buscar guía..."
               />
             </label>
-            <label className="block lg:col-span-2">
+            <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
-                Cuarto frío <span className="text-rose-500">*</span>
+                C.Frío <span className="text-rose-500">*</span>
               </span>
               <SelectorBuscable
                 opciones={cuartosFrios}
