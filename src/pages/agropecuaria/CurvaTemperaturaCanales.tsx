@@ -32,6 +32,7 @@ function cargarAnteMortem(): AnteMortemLite[] {
 interface Medicion {
   id: string
   caliente: string
+  fecha: string
   hora: string
   canal: string
   tcCanal: string
@@ -59,6 +60,7 @@ interface Orden {
 const medicionVacia = (verificado = ''): Medicion => ({
   id: crypto.randomUUID(),
   caliente: 'CALIENTE',
+  fecha: new Date().toLocaleDateString('en-CA'),
   hora: new Date().toTimeString().slice(0, 5),
   canal: '',
   tcCanal: '',
@@ -272,7 +274,13 @@ export function CurvaTemperaturaCanales() {
     setForm({
       ...formVacio(firmaUsuario),
       ...datos,
-      mediciones: datos.mediciones?.length ? datos.mediciones : [medicionVacia(firmaUsuario)],
+      mediciones: (datos.mediciones?.length
+        ? datos.mediciones
+        : [medicionVacia(firmaUsuario)]
+      ).map((m) => ({
+        ...m,
+        fecha: m.fecha || datos.fecha || new Date().toLocaleDateString('en-CA'),
+      })),
     })
     setEditandoId(o.id)
     setMostrarForm(true)
@@ -298,6 +306,7 @@ export function CurvaTemperaturaCanales() {
       const m = form.mediciones[i]
       const n = i + 1
       if (!m.caliente.trim()) return `Medición #${n}: ingresa Caliente.`
+      if (!(m.fecha || '').trim()) return `Medición #${n}: ingresa la fecha.`
       if (!m.hora.trim()) return `Medición #${n}: ingresa la hora.`
       if (!m.canal.trim()) return `Medición #${n}: ingresa el canal.`
       if (!m.tcCanal.trim()) return `Medición #${n}: ingresa T°C canal.`
@@ -462,7 +471,7 @@ export function CurvaTemperaturaCanales() {
               {form.mediciones.map((m, i) => (
                 <div
                   key={m.id}
-                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_7rem_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
+                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_7rem_7.5rem_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
                 >
                   <div className="flex h-9 items-center text-sm font-semibold text-slate-400">
                     #{i + 1}
@@ -488,6 +497,18 @@ export function CurvaTemperaturaCanales() {
                     >
                       {m.caliente === 'FRIO' ? 'FRIO' : 'CALIENTE'}
                     </button>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-slate-600">
+                      Fecha <span className="text-rose-500">*</span>
+                    </span>
+                    <input
+                      type="date"
+                      readOnly
+                      data-no-upper
+                      className={inputRO}
+                      value={m.fecha || ''}
+                    />
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
