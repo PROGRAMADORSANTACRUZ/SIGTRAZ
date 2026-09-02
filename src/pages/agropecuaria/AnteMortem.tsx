@@ -215,12 +215,17 @@ export function AnteMortem() {
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const inputLoteRef = useRef<HTMLInputElement>(null)
   const [msgLote, setMsgLote] = useState<string | null>(null)
-  // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
+  // Por defecto se muestra el mes actual y el rango Desde/Hasta en la fecha de
+  // hoy, para ver de una vez las inspecciones del dia.
   const [filtroMes, setFiltroMes] = useState(() =>
     new Date().toLocaleDateString('en-CA').slice(0, 7),
   )
-  const [filtroDesde, setFiltroDesde] = useState('')
-  const [filtroHasta, setFiltroHasta] = useState('')
+  const [filtroDesde, setFiltroDesde] = useState(() =>
+    new Date().toLocaleDateString('en-CA'),
+  )
+  const [filtroHasta, setFiltroHasta] = useState(() =>
+    new Date().toLocaleDateString('en-CA'),
+  )
   const [busqueda, setBusqueda] = useState('')
   const { usuario } = useAuth()
   // Firma automatica = nombre y apellido del usuario logueado.
