@@ -361,12 +361,16 @@ export function PosMortem() {
     const referencia = `${refLote} · ${pendientes.length} ORGANO(S)`
 
     if (editandoGrupo) {
-      setRegistros((prev) => [
-        ...pendientes,
-        ...prev.filter(
-          (r) => `${r.fecha}||${r.loteSacrificio}` !== editandoGrupo,
-        ),
-      ])
+      // Reinserta el lote en su posicion original para conservar el mismo
+      // consecutivo (no moverlo al frente lo trataria como recien creado).
+      setRegistros((prev) => {
+        const esGrupo = (r: RegistroPosMortem) =>
+          `${r.fecha}||${r.loteSacrificio}` === editandoGrupo
+        const idx = prev.findIndex(esGrupo)
+        const resto = prev.filter((r) => !esGrupo(r))
+        const pos = idx === -1 ? 0 : idx
+        return [...resto.slice(0, pos), ...pendientes, ...resto.slice(pos)]
+      })
       registrarMovimiento('EDITÓ', referencia)
     } else {
       setRegistros((prev) => [...pendientes, ...prev])
