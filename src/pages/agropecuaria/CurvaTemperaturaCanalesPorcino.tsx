@@ -488,8 +488,8 @@ export function CurvaTemperaturaCanalesPorcino() {
                     <input
                       inputMode="decimal"
                       data-no-upper
-                      disabled={i === 0}
-                      title={i === 0 ? 'Se habilita despues de agregar una medicion' : undefined}
+                      disabled={i === 0 && !editandoId}
+                      title={i === 0 && !editandoId ? 'Se habilita despues de agregar una medicion' : undefined}
                       className={`${inputBase} disabled:cursor-not-allowed disabled:bg-slate-100`}
                       value={m.hp}
                       onChange={(e) =>
