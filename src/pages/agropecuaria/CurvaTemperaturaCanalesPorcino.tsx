@@ -82,6 +82,15 @@ function fechaCorta(iso: string): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso || ''
 }
 
+// Deja solo numeros y un unico punto decimal (acepta coma y la convierte).
+function soloDecimal(v: string): string {
+  const limpio = v.replace(',', '.').replace(/[^0-9.]/g, '')
+  const i = limpio.indexOf('.')
+  return i === -1
+    ? limpio
+    : limpio.slice(0, i + 1) + limpio.slice(i + 1).replace(/\./g, '')
+}
+
 function siguienteConsecutivo(ordenes: Orden[]): string {
   const max = ordenes.reduce((m, o) => {
     const n = parseInt((o.consecutivo || '').replace(/\D/g, ''), 10)
@@ -452,7 +461,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                       className={inputBase}
                       value={m.tcCanal}
                       onChange={(e) =>
-                        actualizarMedicion(m.id, 'tcCanal', e.target.value.replace(/[^0-9.]/g, ''))
+                        actualizarMedicion(m.id, 'tcCanal', soloDecimal(e.target.value))
                       }
                     />
                   </label>
@@ -466,7 +475,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                       className={inputBase}
                       value={m.tcCuarto}
                       onChange={(e) =>
-                        actualizarMedicion(m.id, 'tcCuarto', e.target.value.replace(/[^0-9.]/g, ''))
+                        actualizarMedicion(m.id, 'tcCuarto', soloDecimal(e.target.value))
                       }
                     />
                   </label>
