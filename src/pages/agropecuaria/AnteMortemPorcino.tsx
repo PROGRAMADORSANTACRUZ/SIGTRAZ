@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { Campo, inputClase } from '../../components/ui'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
@@ -120,6 +120,44 @@ function valorMostrar(v: unknown): string {
   return String(v ?? '')
 }
 
+// Normaliza una guia dejando solo los numeros que van despues de la "P"
+// (en SIGTRAZ la guia es "26-P-2367..." y en el Excel es "26P2367...").
+function normalizarGuia(g: string): string {
+  const limpio = g.toUpperCase().replace(/[^0-9A-Z]/g, '')
+  const desdeP = limpio.replace(/^.*P/, '')
+  return /\d/.test(desdeP) ? desdeP : ''
+}
+
+// Lee el archivo de beneficio (Excel real .xlsx o .xls basado en tabla HTML) y
+// devuelve un mapa: numeros-de-guia -> numero de lote. Columna G = guia,
+// columna H = lote.
+async function leerMapaGuiaLote(file: File): Promise<Map<string, string>> {
+  const mapa = new Map<string, string>()
+  const texto = await file.text()
+  if (/<t(able|r)\b/i.test(texto)) {
+    const doc = new DOMParser().parseFromString(texto, 'text/html')
+    doc.querySelectorAll('tr').forEach((tr) => {
+      const celdas = tr.querySelectorAll('td')
+      if (celdas.length < 8) return
+      const guia = celdas[6].textContent?.trim() ?? ''
+      const lote = celdas[7].textContent?.trim() ?? ''
+      const clave = normalizarGuia(guia)
+      if (clave && lote) mapa.set(clave, lote)
+    })
+  } else {
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(await file.arrayBuffer())
+    const ws = wb.worksheets[0]
+    ws?.eachRow((row) => {
+      const guia = String(row.getCell(7).value ?? '').trim()
+      const lote = String(row.getCell(8).value ?? '').trim()
+      const clave = normalizarGuia(guia)
+      if (clave && lote) mapa.set(clave, lote)
+    })
+  }
+  return mapa
+}
+
 function calcularCambios(
   antes: RegistroAnteMortem,
   ahora: Omit<RegistroAnteMortem, 'id'>,
@@ -172,6 +210,8 @@ export function AnteMortemPorcino() {
   const [mostrarEliminar, setMostrarEliminar] = useState(false)
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
+  const inputLoteRef = useRef<HTMLInputElement>(null)
+  const [msgLote, setMsgLote] = useState<string | null>(null)
   // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
   const [filtroMes, setFiltroMes] = useState(() =>
     new Date().toLocaleDateString('en-CA').slice(0, 7),
@@ -361,6 +401,38 @@ export function AnteMortemPorcino() {
       )
     } finally {
       setEliminando(false)
+    }
+  }
+
+  // Toma el archivo de beneficio y, para cada Ante Mortem seleccionado, busca su
+  // guia en el archivo y le asigna el numero de lote (columna H).
+  async function cargarLote(file: File | undefined) {
+    if (!file) return
+    setMsgLote(null)
+    try {
+      const mapa = await leerMapaGuiaLote(file)
+      let actualizados = 0
+      const sinCoincidencia: string[] = []
+      setRegistros((prev) =>
+        prev.map((r) => {
+          if (!seleccionados.has(r.id)) return r
+          const lote = mapa.get(normalizarGuia(r.numeroGuia))
+          if (lote) {
+            actualizados++
+            return { ...r, loteSacrificio: lote }
+          }
+          sinCoincidencia.push(`ATMP-${consecutivoPorId.get(r.id) ?? '?'}`)
+          return r
+        }),
+      )
+      const partes = [`${actualizados} lote(s) cargado(s)`]
+      if (sinCoincidencia.length)
+        partes.push(`sin coincidencia: ${sinCoincidencia.join(', ')}`)
+      setMsgLote(partes.join('  ·  '))
+    } catch {
+      setMsgLote(
+        'No se pudo leer el archivo. Verifica que sea el Excel de beneficio correcto.',
+      )
     }
   }
 
@@ -1037,6 +1109,28 @@ export function AnteMortemPorcino() {
                 : `${registrosFiltrados.length} de ${registros.length} registro(s)`}
             </span>
             <div className="flex flex-wrap gap-2">
+              {seleccionados.size > 0 && (
+                <>
+                  <input
+                    ref={inputLoteRef}
+                    type="file"
+                    accept=".xls,.xlsx,.htm,.html"
+                    className="hidden"
+                    data-no-upper
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      e.currentTarget.value = ''
+                      void cargarLote(f)
+                    }}
+                  />
+                  <button
+                    onClick={() => inputLoteRef.current?.click()}
+                    className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100"
+                  >
+                    Cargar lote
+                  </button>
+                </>
+              )}
               <button
                 onClick={exportarExcel}
                 className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
@@ -1062,6 +1156,18 @@ export function AnteMortemPorcino() {
               )}
             </div>
           </div>
+          {msgLote && (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <span>{msgLote}</span>
+              <button
+                onClick={() => setMsgLote(null)}
+                className="text-amber-600 hover:text-amber-800"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">

@@ -246,15 +246,21 @@ export function CronologiaPorcino() {
     setForm((prev) => ({ ...prev, [campo]: valor }))
   }
 
-  // Al elegir N dientes autocompleta edad.
+  // Al elegir N dientes autocompleta edad y agrega la linea automaticamente.
   function elegirDientes(d: string) {
+    if (!d) {
+      setForm((prev) => ({ ...prev, dientes: '', edadMes: '', edadAnio: '' }))
+      return
+    }
     const fila = TABLA_GANCHOS.find((f) => String(f.dientes) === d)
-    setForm((prev) => ({
-      ...prev,
+    const completo = {
+      ...form,
       dientes: d,
       edadMes: fila ? fila.edadMes : '',
       edadAnio: fila ? fila.edadAnio : '',
-    }))
+    }
+    // Si faltan datos o el gancho se repite, deja la seleccion y muestra el error.
+    if (!agregarLineaDesde(completo)) setForm(completo)
   }
 
   function camposFaltantes() {
@@ -293,23 +299,26 @@ export function CronologiaPorcino() {
     return String(max + 1)
   }
 
-  // Registra la linea actual abajo y prepara la siguiente conservando
-  // fecha y lote, con el gancho consecutivo.
-  function agregarLinea() {
-    const faltan = camposFaltantes()
+  // Registra la linea indicada abajo y prepara la siguiente conservando
+  // fecha y lote, con el gancho consecutivo. Devuelve false si faltan datos.
+  function agregarLineaDesde(fuente: Omit<RegistroCronologia, 'id'>): boolean {
+    const faltan: string[] = []
+    if (!fuente.fecha.trim()) faltan.push(ETIQUETAS.fecha)
+    if (!fuente.loteSacrificio.trim()) faltan.push(ETIQUETAS.loteSacrificio)
+    if (!fuente.gancho.trim()) faltan.push(ETIQUETAS.gancho)
+    if (!fuente.dientes.trim()) faltan.push(ETIQUETAS.dientes)
     if (faltan.length > 0) {
       setError(`Faltan campos: ${faltan.join(', ')}`)
-      return
+      return false
     }
-    if (ganchoRepetido(form.gancho, form.fecha, form.loteSacrificio)) {
-      setError(`El gancho ${form.gancho} ya existe para ese lote/dia.`)
-      return
+    if (ganchoRepetido(fuente.gancho, fuente.fecha, fuente.loteSacrificio)) {
+      setError(`El gancho ${fuente.gancho} ya existe para ese lote/dia.`)
+      return false
     }
-    setLineas((prev) => [...prev, { ...form, id: crypto.randomUUID() }])
-    const n = Number(form.gancho)
-    const siguienteGancho = Number.isFinite(n) && form.gancho.trim() !== ''
-      ? String(n + 1)
-      : ''
+    setLineas((prev) => [...prev, { ...fuente, id: crypto.randomUUID() }])
+    const n = Number(fuente.gancho)
+    const siguienteGancho =
+      Number.isFinite(n) && fuente.gancho.trim() !== '' ? String(n + 1) : ''
     setForm((prev) => ({
       ...formVacio(),
       fecha: prev.fecha,
@@ -319,6 +328,11 @@ export function CronologiaPorcino() {
       gancho: siguienteGancho,
     }))
     setError('')
+    return true
+  }
+
+  function agregarLinea() {
+    agregarLineaDesde(form)
   }
 
   function quitarLinea(id: string) {
@@ -746,9 +760,18 @@ export function CronologiaPorcino() {
 
           {lineas.length > 0 && (
             <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Lineas agregadas
+                </span>
+                <span className="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
+                  {lineas.length} {lineas.length === 1 ? 'linea' : 'lineas'}
+                </span>
+              </div>
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
+                    <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Fecha</th>
                     <th className="px-3 py-2">Lote</th>
                     <th className="px-3 py-2">Gancho</th>
@@ -759,8 +782,11 @@ export function CronologiaPorcino() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {lineas.map((l) => (
+                  {lineas.map((l, i) => (
                     <tr key={l.id}>
+                      <td className="px-3 py-2 font-semibold text-slate-500 tabular-nums">
+                        {i + 1}
+                      </td>
                       <td className="px-3 py-2">{l.fecha}</td>
                       <td className="px-3 py-2">{l.loteSacrificio}</td>
                       <td className="px-3 py-2">{l.gancho}</td>
