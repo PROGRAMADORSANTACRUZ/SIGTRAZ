@@ -97,16 +97,6 @@ function soloDecimal(v: string): string {
     : limpio.slice(0, i + 1) + limpio.slice(i + 1).replace(/\./g, '')
 }
 
-function soloHora24(v: string): string {
-  const d = v.replace(/\D/g, '').slice(0, 4)
-  if (d.length <= 2) return d
-  let h = d.slice(0, 2)
-  let m = d.slice(2)
-  if (Number(h) > 23) h = '23'
-  if (Number(m) > 59) m = '59'
-  return `${h}:${m}`
-}
-
 function siguienteConsecutivo(ordenes: Orden[]): string {
   const max = ordenes.reduce((m, o) => {
     const n = parseInt((o.consecutivo || '').replace(/\D/g, ''), 10)
@@ -527,15 +517,12 @@ export function CurvaTemperaturaCanalesPorcino() {
                       Hora <span className="text-rose-500">*</span>
                     </span>
                     <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="HH:MM"
-                      maxLength={5}
+                      type="time"
                       readOnly={!esAdmin}
                       data-no-upper
                       className={esAdmin ? inputBase : inputRO}
                       value={m.hora}
-                      onChange={(e) => actualizarMedicion(m.id, 'hora', soloHora24(e.target.value))}
+                      onChange={(e) => actualizarMedicion(m.id, 'hora', e.target.value)}
                     />
                   </label>
                   <label className="block">
