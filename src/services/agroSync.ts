@@ -78,6 +78,7 @@ export async function precargarAgro(): Promise<void> {
   if (!getToken()) return
   try {
     const items = await api.getAgroKv()
+    const clavesServidor = new Set(items.map((i) => i.clave))
     aplicandoRemoto = true
     try {
       for (const { clave, valor } of items) {
@@ -93,6 +94,25 @@ export async function precargarAgro(): Promise<void> {
         }
         snapshotServidor.set(clave, remoto)
         localStorage.setItem(clave, remoto)
+      }
+      // Recupera datos huerfanos: claves agro_ que existen SOLO en este
+      // navegador y el servidor nunca vio (p.ej. capturadas antes de tener
+      // sincronizacion). Se suben para que no se pierdan al cambiar de equipo.
+      for (let i = 0; i < localStorage.length; i++) {
+        const clave = localStorage.key(i)
+        if (!clave || !esClaveAgro(clave) || clavesServidor.has(clave)) continue
+        const local = localStorage.getItem(clave)
+        if (local == null || esVacio(local)) continue
+        try {
+          const parsed = JSON.parse(local)
+          snapshotServidor.set(clave, local)
+          api.putAgroKv(clave, parsed).catch((err) => {
+            snapshotServidor.delete(clave)
+            console.error(`No se pudo subir "${clave}" al servidor:`, err)
+          })
+        } catch {
+          // valor local corrupto: se ignora
+        }
       }
     } finally {
       aplicandoRemoto = false
