@@ -29,6 +29,7 @@ function cargarAnteMortem(): AnteMortemLite[] {
   return []
 }
 
+// Estructura antigua (una fila por medicion). Se conserva para migrar datos.
 interface Medicion {
   id: string
   caliente: string
@@ -39,6 +40,23 @@ interface Medicion {
   tcCuarto: string
   hp: string
   verificado: string
+}
+
+// Cada lectura es una toma de temperatura del mismo canal en un momento dado.
+interface Lectura {
+  id: string
+  fecha: string
+  hora: string
+  tcCanal: string
+  tcCuarto: string
+  hp: string
+}
+
+interface Canal {
+  id: string
+  numero: string
+  verificado: string
+  lecturas: Lectura[]
 }
 
 interface Orden {
@@ -52,22 +70,59 @@ interface Orden {
   cliente: string
   numeroGuia: string
   cuartoFrio: string
-  mediciones: Medicion[]
+  canales: Canal[]
+  // Estructura antigua; puede venir en registros guardados previamente.
+  mediciones?: Medicion[]
   // El lote solo sale de la lista de disponibles cuando se finaliza.
   finalizado?: boolean
 }
 
-const medicionVacia = (verificado = ''): Medicion => ({
+const lecturaVacia = (): Lectura => ({
   id: crypto.randomUUID(),
-  caliente: 'CALIENTE',
   fecha: new Date().toLocaleDateString('en-CA'),
   hora: new Date().toTimeString().slice(0, 5),
-  canal: '',
   tcCanal: '',
   tcCuarto: '',
   hp: '',
-  verificado,
 })
+
+const canalVacio = (verificado = ''): Canal => ({
+  id: crypto.randomUUID(),
+  numero: '',
+  verificado,
+  lecturas: [lecturaVacia()],
+})
+
+// Convierte registros con la estructura antigua (mediciones) a canales.
+function migrarOrden(o: Orden): Orden {
+  if (Array.isArray(o.canales) && o.canales.length) return o
+  const meds = Array.isArray(o.mediciones) ? o.mediciones : []
+  const porNumero = new Map<string, Canal>()
+  const canales: Canal[] = []
+  for (const m of meds) {
+    const clave = (m.canal || '').trim() || `__${canales.length}`
+    let c = porNumero.get(clave)
+    if (!c) {
+      c = {
+        id: crypto.randomUUID(),
+        numero: m.canal || '',
+        verificado: m.verificado || '',
+        lecturas: [],
+      }
+      porNumero.set(clave, c)
+      canales.push(c)
+    }
+    c.lecturas.push({
+      id: m.id || crypto.randomUUID(),
+      fecha: m.fecha || o.fecha || '',
+      hora: m.hora || '',
+      tcCanal: m.tcCanal || '',
+      tcCuarto: m.tcCuarto || '',
+      hp: m.hp || '',
+    })
+  }
+  return { ...o, canales: canales.length ? canales : [canalVacio()] }
+}
 
 const formVacio = (verificado = ''): Omit<Orden, 'id'> => ({
   consecutivo: '',
@@ -79,7 +134,7 @@ const formVacio = (verificado = ''): Omit<Orden, 'id'> => ({
   cliente: '',
   numeroGuia: '',
   cuartoFrio: '',
-  mediciones: [medicionVacia(verificado)],
+  canales: [canalVacio(verificado)],
   finalizado: false,
 })
 
@@ -109,7 +164,10 @@ export function CurvaTemperaturaCanales() {
   const cuartosFrios = useCatalogo('Cuartos fríos', cuartosFriosSeed)
   const [ordenes, setOrdenes] = useState<Orden[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      const guardadas = JSON.parse(
+        localStorage.getItem(STORAGE_KEY) || '[]',
+      ) as Orden[]
+      return Array.isArray(guardadas) ? guardadas.map(migrarOrden) : []
     } catch {
       return []
     }
@@ -201,7 +259,7 @@ export function CurvaTemperaturaCanales() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ordenes))
   }, [ordenes])
 
-  function actualizar<K extends keyof Omit<Orden, 'id' | 'mediciones'>>(
+  function actualizar<K extends keyof Omit<Orden, 'id' | 'canales' | 'mediciones'>>(
     campo: K,
     valor: Omit<Orden, 'id'>[K],
   ) {
@@ -225,33 +283,76 @@ export function CurvaTemperaturaCanales() {
     }))
   }
 
-  function actualizarMedicion<K extends keyof Omit<Medicion, 'id'>>(
-    idMedicion: string,
+  function actualizarCanal<K extends keyof Omit<Canal, 'id' | 'lecturas'>>(
+    idCanal: string,
     campo: K,
-    valor: Medicion[K],
+    valor: Canal[K],
   ) {
     setForm((prev) => ({
       ...prev,
-      mediciones: prev.mediciones.map((m) =>
-        m.id === idMedicion ? { ...m, [campo]: valor } : m,
+      canales: prev.canales.map((c) =>
+        c.id === idCanal ? { ...c, [campo]: valor } : c,
       ),
     }))
   }
 
-  function agregarMedicion() {
+  function actualizarLectura<K extends keyof Omit<Lectura, 'id'>>(
+    idCanal: string,
+    idLectura: string,
+    campo: K,
+    valor: Lectura[K],
+  ) {
     setForm((prev) => ({
       ...prev,
-      mediciones: [...prev.mediciones, medicionVacia(firmaUsuario)],
+      canales: prev.canales.map((c) =>
+        c.id === idCanal
+          ? {
+              ...c,
+              lecturas: c.lecturas.map((l) =>
+                l.id === idLectura ? { ...l, [campo]: valor } : l,
+              ),
+            }
+          : c,
+      ),
     }))
   }
 
-  function quitarMedicion(idMedicion: string) {
+  function agregarCanal() {
     setForm((prev) => ({
       ...prev,
-      mediciones:
-        prev.mediciones.length > 1
-          ? prev.mediciones.filter((m) => m.id !== idMedicion)
-          : prev.mediciones,
+      canales: [...prev.canales, canalVacio(firmaUsuario)],
+    }))
+  }
+
+  function quitarCanal(idCanal: string) {
+    setForm((prev) => ({
+      ...prev,
+      canales:
+        prev.canales.length > 1
+          ? prev.canales.filter((c) => c.id !== idCanal)
+          : prev.canales,
+    }))
+  }
+
+  function agregarLectura(idCanal: string) {
+    setForm((prev) => ({
+      ...prev,
+      canales: prev.canales.map((c) =>
+        c.id === idCanal
+          ? { ...c, lecturas: [...c.lecturas, lecturaVacia()] }
+          : c,
+      ),
+    }))
+  }
+
+  function quitarLectura(idCanal: string, idLectura: string) {
+    setForm((prev) => ({
+      ...prev,
+      canales: prev.canales.map((c) =>
+        c.id === idCanal && c.lecturas.length > 1
+          ? { ...c, lecturas: c.lecturas.filter((l) => l.id !== idLectura) }
+          : c,
+      ),
     }))
   }
 
@@ -271,17 +372,11 @@ export function CurvaTemperaturaCanales() {
   function editar(o: Orden) {
     setAnteMortem(cargarAnteMortem())
     setError('')
-    const { id: _id, ...datos } = o
+    const { id: _id, ...datos } = migrarOrden(o)
     setForm({
       ...formVacio(firmaUsuario),
       ...datos,
-      mediciones: (datos.mediciones?.length
-        ? datos.mediciones
-        : [medicionVacia(firmaUsuario)]
-      ).map((m) => ({
-        ...m,
-        fecha: m.fecha || datos.fecha || new Date().toLocaleDateString('en-CA'),
-      })),
+      canales: datos.canales?.length ? datos.canales : [canalVacio(firmaUsuario)],
     })
     setEditandoId(o.id)
     setMostrarForm(true)
@@ -303,16 +398,19 @@ export function CurvaTemperaturaCanales() {
     if (!form.lote.trim()) return 'Selecciona el lote.'
     if (!form.numeroGuia.trim()) return 'Ingresa el número de guía.'
     if (!form.cuartoFrio.trim()) return 'Selecciona el cuarto frío.'
-    for (let i = 0; i < form.mediciones.length; i++) {
-      const m = form.mediciones[i]
+    for (let i = 0; i < form.canales.length; i++) {
+      const c = form.canales[i]
       const n = i + 1
-      if (!m.caliente.trim()) return `Medición #${n}: ingresa Caliente.`
-      if (!(m.fecha || '').trim()) return `Medición #${n}: ingresa la fecha.`
-      if (!m.hora.trim()) return `Medición #${n}: ingresa la hora.`
-      if (!m.canal.trim()) return `Medición #${n}: ingresa el canal.`
-      if (!m.tcCanal.trim()) return `Medición #${n}: ingresa T°C canal.`
-      if (!m.tcCuarto.trim()) return `Medición #${n}: ingresa T°C cuarto.`
-      if (!m.verificado.trim()) return `Medición #${n}: ingresa Verificado por.`
+      if (!c.numero.trim()) return `Canal #${n}: ingresa el número de canal.`
+      if (!c.verificado.trim()) return `Canal #${n}: ingresa Verificado por.`
+      for (let j = 0; j < c.lecturas.length; j++) {
+        const l = c.lecturas[j]
+        const etq = `Canal ${c.numero || n}, lectura #${j + 1}`
+        if (!(l.fecha || '').trim()) return `${etq}: ingresa la fecha.`
+        if (!l.hora.trim()) return `${etq}: ingresa la hora.`
+        if (!l.tcCanal.trim()) return `${etq}: ingresa T°C canal.`
+        if (!l.tcCuarto.trim()) return `${etq}: ingresa T°C cuarto.`
+      }
     }
     return ''
   }
@@ -465,145 +563,181 @@ export function CurvaTemperaturaCanales() {
           <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-700">
-                Mediciones ({form.mediciones.length})
+                Canales ({form.canales.length})
               </h3>
             </div>
-            <div className="space-y-3">
-              {form.mediciones.map((m, i) => (
+            <div className="space-y-4">
+              {form.canales.map((c) => (
                 <div
-                  key={m.id}
-                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_7rem_7.5rem_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
+                  key={c.id}
+                  className="space-y-3 rounded-lg border border-slate-200 bg-white p-3"
                 >
-                  <div className="flex h-9 items-center text-sm font-semibold text-slate-400">
-                    #{i + 1}
-                  </div>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Estado <span className="text-rose-500">*</span>
-                    </span>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium text-slate-600">
+                        Canal <span className="text-rose-500">*</span>
+                      </span>
+                      <input
+                        inputMode="numeric"
+                        data-no-upper
+                        className={`${inputBase} w-28`}
+                        value={c.numero}
+                        onChange={(e) =>
+                          actualizarCanal(
+                            c.id,
+                            'numero',
+                            e.target.value.replace(/[^0-9]/g, ''),
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="block min-w-[180px] flex-1">
+                      <span className="mb-1 block text-xs font-medium text-slate-600">
+                        Verificado por <span className="text-rose-500">*</span>
+                      </span>
+                      <input
+                        className={inputBase}
+                        value={c.verificado}
+                        onChange={(e) =>
+                          actualizarCanal(c.id, 'verificado', e.target.value)
+                        }
+                      />
+                    </label>
                     <button
                       type="button"
-                      onClick={() =>
-                        actualizarMedicion(
-                          m.id,
-                          'caliente',
-                          m.caliente === 'FRIO' ? 'CALIENTE' : 'FRIO',
-                        )
-                      }
-                      className={`h-9 w-full rounded-md text-sm font-bold text-white shadow-sm transition ${
-                        m.caliente === 'FRIO'
-                          ? 'bg-blue-600 hover:bg-blue-700'
-                          : 'bg-red-600 hover:bg-red-700'
-                      }`}
+                      onClick={() => quitarCanal(c.id)}
+                      disabled={form.canales.length === 1}
+                      title="Quitar canal"
+                      className="h-9 shrink-0 rounded-md border border-rose-300 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      {m.caliente === 'FRIO' ? 'FRIO' : 'CALIENTE'}
+                      Quitar canal
                     </button>
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Fecha <span className="text-rose-500">*</span>
-                    </span>
-                    <input
-                      type="date"
-                      readOnly={!esAdmin}
-                      data-no-upper
-                      className={esAdmin ? inputBase : inputRO}
-                      value={m.fecha || ''}
-                      onChange={(e) => actualizarMedicion(m.id, 'fecha', e.target.value)}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Hora <span className="text-rose-500">*</span>
-                    </span>
-                    <input
-                      type="time"
-                      readOnly={!esAdmin}
-                      data-no-upper
-                      className={esAdmin ? inputBase : inputRO}
-                      value={m.hora}
-                      onChange={(e) => actualizarMedicion(m.id, 'hora', e.target.value)}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Canal <span className="text-rose-500">*</span>
-                    </span>
-                    <input
-                      inputMode="numeric"
-                      data-no-upper
-                      className={inputBase}
-                      value={m.canal}
-                      onChange={(e) =>
-                        actualizarMedicion(m.id, 'canal', e.target.value.replace(/[^0-9]/g, ''))
-                      }
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      T°C canal <span className="text-rose-500">*</span>
-                    </span>
-                    <input
-                      inputMode="decimal"
-                      data-no-upper
-                      className={inputBase}
-                      value={m.tcCanal}
-                      onChange={(e) =>
-                        actualizarMedicion(m.id, 'tcCanal', soloDecimal(e.target.value))
-                      }
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      T°C cuarto <span className="text-rose-500">*</span>
-                    </span>
-                    <input
-                      inputMode="decimal"
-                      data-no-upper
-                      className={inputBase}
-                      value={m.tcCuarto}
-                      onChange={(e) =>
-                        actualizarMedicion(m.id, 'tcCuarto', soloDecimal(e.target.value))
-                      }
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      pH
-                    </span>
-                    <input
-                      inputMode="decimal"
-                      data-no-upper
-                      disabled={i === 0 && !editandoId}
-                      title={i === 0 && !editandoId ? 'Se habilita despues de agregar una medicion' : undefined}
-                      className={`${inputBase} disabled:cursor-not-allowed disabled:bg-slate-100`}
-                      value={m.hp}
-                      onChange={(e) =>
-                        actualizarMedicion(m.id, 'hp', soloDecimal(e.target.value))
-                      }
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Verificado por <span className="text-rose-500">*</span>
-                    </span>
-                    <input
-                      className={inputBase}
-                      value={m.verificado}
-                      onChange={(e) => actualizarMedicion(m.id, 'verificado', e.target.value)}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => quitarMedicion(m.id)}
-                    disabled={form.mediciones.length === 1}
-                    title="Quitar medición"
-                    className="h-9 shrink-0 rounded-md border border-rose-300 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    ×
-                  </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-start gap-2">
+                    {c.lecturas.map((l, li) => {
+                      const caliente = li === 0
+                      const bloqueado = !c.numero.trim()
+                      return (
+                        <div
+                          key={l.id}
+                          className="w-44 overflow-hidden rounded-lg border border-slate-200 bg-white"
+                        >
+                          <div
+                            className={`px-2 py-1.5 text-center text-xs font-bold text-white ${
+                              caliente ? 'bg-red-600' : 'bg-blue-600'
+                            }`}
+                          >
+                            {caliente ? 'CALIENTE' : 'FRÍO'}
+                          </div>
+                          <div className="space-y-2 p-2">
+                            <label className="block">
+                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
+                                Fecha <span className="text-rose-500">*</span>
+                              </span>
+                              <input
+                                type="date"
+                                readOnly={!esAdmin}
+                                data-no-upper
+                                className={`${esAdmin ? inputBase : inputRO} px-2 py-1 text-xs`}
+                                value={l.fecha || ''}
+                                onChange={(e) =>
+                                  actualizarLectura(c.id, l.id, 'fecha', e.target.value)
+                                }
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
+                                Hora <span className="text-rose-500">*</span>
+                              </span>
+                              <input
+                                type="time"
+                                readOnly={!esAdmin}
+                                data-no-upper
+                                className={`${esAdmin ? inputBase : inputRO} px-2 py-1 text-xs`}
+                                value={l.hora}
+                                onChange={(e) =>
+                                  actualizarLectura(c.id, l.id, 'hora', e.target.value)
+                                }
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
+                                T°C canal <span className="text-rose-500">*</span>
+                              </span>
+                              <input
+                                inputMode="decimal"
+                                data-no-upper
+                                disabled={bloqueado}
+                                title={bloqueado ? 'Ingresa el número de canal' : undefined}
+                                className={`${inputBase} px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                value={l.tcCanal}
+                                onChange={(e) =>
+                                  actualizarLectura(c.id, l.id, 'tcCanal', soloDecimal(e.target.value))
+                                }
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
+                                T°C cuarto <span className="text-rose-500">*</span>
+                              </span>
+                              <input
+                                inputMode="decimal"
+                                data-no-upper
+                                disabled={bloqueado}
+                                title={bloqueado ? 'Ingresa el número de canal' : undefined}
+                                className={`${inputBase} px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                value={l.tcCuarto}
+                                onChange={(e) =>
+                                  actualizarLectura(c.id, l.id, 'tcCuarto', soloDecimal(e.target.value))
+                                }
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
+                                pH
+                              </span>
+                              <input
+                                inputMode="decimal"
+                                data-no-upper
+                                disabled={bloqueado}
+                                title={bloqueado ? 'Ingresa el número de canal' : undefined}
+                                className={`${inputBase} px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                value={l.hp}
+                                onChange={(e) =>
+                                  actualizarLectura(c.id, l.id, 'hp', soloDecimal(e.target.value))
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => quitarLectura(c.id, l.id)}
+                              disabled={c.lecturas.length === 1}
+                              className="w-full rounded-md border border-rose-200 bg-rose-50 py-1 text-xs font-medium text-rose-600 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => agregarLectura(c.id)}
+                      className="h-9 self-center rounded-md border border-dashed border-brand-500 px-3 text-sm font-medium text-brand-600 hover:bg-brand-50"
+                    >
+                      + Lectura
+                    </button>
+                  </div>
                 </div>
               ))}
+              <button
+                type="button"
+                onClick={agregarCanal}
+                className="rounded-md border border-brand-500 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50"
+              >
+                + Canal
+              </button>
             </div>
           </div>
 
@@ -625,13 +759,6 @@ export function CurvaTemperaturaCanales() {
               Cancelar
             </button>
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={agregarMedicion}
-                className="rounded-md border border-brand-500 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50"
-              >
-                + Medición
-              </button>
               <button
                 type="submit"
                 className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
@@ -717,7 +844,7 @@ export function CurvaTemperaturaCanales() {
                   <th className="px-4 py-3">Cliente</th>
                   <th className="px-4 py-3">N° guía</th>
                   <th className="px-4 py-3">Cuarto frío</th>
-                  <th className="px-4 py-3">Mediciones</th>
+                  <th className="px-4 py-3">Canales</th>
                   <th className="px-4 py-3">Acciones</th>
                 </tr>
               </thead>
@@ -741,7 +868,7 @@ export function CurvaTemperaturaCanales() {
                       <td className="px-4 py-3">{o.cuartoFrio}</td>
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
-                          {o.mediciones?.length || 0}
+                          {o.canales?.length || 0}
                         </span>
                       </td>
                       <td className="px-4 py-3">
