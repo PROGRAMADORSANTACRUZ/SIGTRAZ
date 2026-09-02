@@ -649,40 +649,40 @@ export function CurvaTemperaturaCanalesPorcino() {
                             )}
                           </div>
                           <div className="space-y-2 p-2">
-                            <label className="block">
-                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
-                                T°C canal <span className="text-rose-500">*</span>
+                            <label className="flex items-center gap-2">
+                              <span className="w-[4.5rem] shrink-0 text-xs font-medium text-slate-500">
+                                T°C canal
                               </span>
                               <input
                                 inputMode="decimal"
                                 data-no-upper
                                 disabled={bloqueado}
                                 title={bloqueado ? 'Ingresa el número de canal' : undefined}
-                                className={`${inputBase} px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                className={`${inputBase} min-w-0 flex-1 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
                                 value={l.tcCanal}
                                 onChange={(e) =>
                                   actualizarLectura(c.id, l.id, 'tcCanal', soloDecimal(e.target.value))
                                 }
                               />
                             </label>
-                            <label className="block">
-                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
-                                T°C cuarto <span className="text-rose-500">*</span>
+                            <label className="flex items-center gap-2">
+                              <span className="w-[4.5rem] shrink-0 text-xs font-medium text-slate-500">
+                                T°C cuarto
                               </span>
                               <input
                                 inputMode="decimal"
                                 data-no-upper
                                 disabled={bloqueado}
                                 title={bloqueado ? 'Ingresa el número de canal' : undefined}
-                                className={`${inputBase} px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                className={`${inputBase} min-w-0 flex-1 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
                                 value={l.tcCuarto}
                                 onChange={(e) =>
                                   actualizarLectura(c.id, l.id, 'tcCuarto', soloDecimal(e.target.value))
                                 }
                               />
                             </label>
-                            <label className="block">
-                              <span className="mb-0.5 block text-[11px] font-medium text-slate-500">
+                            <label className="flex items-center gap-2">
+                              <span className="w-[4.5rem] shrink-0 text-xs font-medium text-slate-500">
                                 pH
                               </span>
                               <input
@@ -690,7 +690,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                                 data-no-upper
                                 disabled={bloqueado}
                                 title={bloqueado ? 'Ingresa el número de canal' : undefined}
-                                className={`${inputBase} px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                className={`${inputBase} min-w-0 flex-1 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
                                 value={l.hp}
                                 onChange={(e) =>
                                   actualizarLectura(c.id, l.id, 'hp', soloDecimal(e.target.value))
