@@ -302,8 +302,6 @@ export function CurvaTemperaturaCanales() {
       if (!m.canal.trim()) return `Medición #${n}: ingresa el canal.`
       if (!m.tcCanal.trim()) return `Medición #${n}: ingresa T°C canal.`
       if (!m.tcCuarto.trim()) return `Medición #${n}: ingresa T°C cuarto.`
-      if (!(i === 0 && !editandoId) && !m.hp.trim())
-        return `Medición #${n}: ingresa HP.`
       if (!m.verificado.trim()) return `Medición #${n}: ingresa Verificado por.`
     }
     return ''
@@ -459,13 +457,6 @@ export function CurvaTemperaturaCanales() {
               <h3 className="text-sm font-semibold text-slate-700">
                 Mediciones ({form.mediciones.length})
               </h3>
-              <button
-                type="button"
-                onClick={agregarMedicion}
-                className="rounded-md border border-brand-500 px-3 py-1.5 text-sm font-medium text-brand-600 hover:bg-brand-50"
-              >
-                + Medición
-              </button>
             </div>
             <div className="space-y-3">
               {form.mediciones.map((m, i) => (
@@ -554,7 +545,7 @@ export function CurvaTemperaturaCanales() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      HP <span className="text-rose-500">*</span>
+                      pH
                     </span>
                     <input
                       inputMode="decimal"
@@ -597,7 +588,7 @@ export function CurvaTemperaturaCanales() {
               {error}
             </p>
           )}
-          <div className="flex justify-end gap-3">
+          <div className="flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {
@@ -609,19 +600,28 @@ export function CurvaTemperaturaCanales() {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-            >
-              Guardar
-            </button>
-            <button
-              type="button"
-              onClick={finalizar}
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              Finalizar
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={agregarMedicion}
+                className="rounded-md border border-brand-500 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50"
+              >
+                + Medición
+              </button>
+              <button
+                type="submit"
+                className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                onClick={finalizar}
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                Finalizar
+              </button>
+            </div>
           </div>
         </form>
       ) : (
