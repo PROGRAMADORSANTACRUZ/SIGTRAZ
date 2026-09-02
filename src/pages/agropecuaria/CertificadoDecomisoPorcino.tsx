@@ -113,8 +113,12 @@ export function CertificadoDecomisoPorcino() {
   const [filtroMes, setFiltroMes] = useState(() =>
     new Date().toLocaleDateString('en-CA').slice(0, 7),
   )
-  const [filtroDesde, setFiltroDesde] = useState('')
-  const [filtroHasta, setFiltroHasta] = useState('')
+  const [filtroDesde, setFiltroDesde] = useState(() =>
+    new Date().toLocaleDateString('en-CA'),
+  )
+  const [filtroHasta, setFiltroHasta] = useState(() =>
+    new Date().toLocaleDateString('en-CA'),
+  )
   const [busqueda, setBusqueda] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
