@@ -182,7 +182,10 @@ type DatosEditables = Pick<
 >
 
 // Actualiza los datos estructurados y regenera el contenido del certificado.
-export function actualizarCertificado(id: string, datos: DatosEditables) {
+export function actualizarCertificado(
+  id: string,
+  datos: DatosEditables,
+): CertificadoDecomiso | undefined {
   certificados = certificados.map((c) =>
     c.id === id
       ? {
@@ -203,6 +206,17 @@ export function actualizarCertificado(id: string, datos: DatosEditables) {
       : c,
   )
   persistir()
+  return certificados.find((c) => c.id === id)
+}
+
+// Busca un certificado ya emitido para un lote y fecha de sacrificio dados.
+export function buscarCertificadoPorLote(
+  lote: string,
+  fechaSacrificio: string,
+): CertificadoDecomiso | undefined {
+  return certificados.find(
+    (c) => c.lote === lote && c.fechaSacrificio === fechaSacrificio,
+  )
 }
 
 export function eliminarCertificados(ids: Set<string>) {

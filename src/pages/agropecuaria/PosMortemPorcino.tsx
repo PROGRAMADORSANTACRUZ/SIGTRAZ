@@ -9,7 +9,9 @@ import { agregarMovimiento } from './movimientosStore'
 import { useCatalogo } from './catalogosStore'
 import { organosSeed, patologiasSeed } from './datosCatalogos'
 import {
+  actualizarCertificado,
   agregarCertificado,
+  buscarCertificadoPorLote,
   construirContenido,
   formatoConsecutivo,
   mesDe,
@@ -546,7 +548,6 @@ export function PosMortemPorcino() {
       ? num(ante.marranas) + num(ante.machos) + num(ante.hembras)
       : 0
     const tipo = 'PORCINOS'
-    const consecutivo = siguienteConsecutivo()
     // Fecha de emision del certificado (dia en que se genera).
     const hoy = new Date().toLocaleDateString('en-CA')
     const hallazgos = items.map((r) => ({
@@ -556,6 +557,24 @@ export function PosMortemPorcino() {
       cantidad: r.cantidad,
       gancho: r.gancho,
     }))
+
+    // Si ya existe un certificado para este lote/fecha, se actualiza conservando
+    // el mismo consecutivo (CDP-N) en lugar de crear otro.
+    const existente = buscarCertificadoPorLote(base.loteSacrificio, base.fecha)
+    if (existente) {
+      return actualizarCertificado(existente.id, {
+        fechaCertificado: existente.fechaCertificado,
+        fechaSacrificio: base.fecha,
+        cliente: base.cliente,
+        lote: base.loteSacrificio,
+        totalAnimales: total,
+        tipoAnimales: tipo,
+        hallazgos,
+        imagenes: existente.imagenes,
+      })
+    }
+
+    const consecutivo = siguienteConsecutivo()
     const contenido = construirContenido({
       consecutivo,
       fechaCertificado: hoy,
