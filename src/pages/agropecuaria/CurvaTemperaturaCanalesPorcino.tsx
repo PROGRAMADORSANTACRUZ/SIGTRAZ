@@ -50,6 +50,8 @@ interface Orden {
   numeroGuia: string
   cuartoFrio: string
   mediciones: Medicion[]
+  // El lote solo sale de la lista de disponibles cuando se finaliza.
+  finalizado?: boolean
 }
 
 const medicionVacia = (verificado = ''): Medicion => ({
@@ -72,6 +74,7 @@ const formVacio = (verificado = ''): Omit<Orden, 'id'> => ({
   numeroGuia: '',
   cuartoFrio: '',
   mediciones: [medicionVacia(verificado)],
+  finalizado: false,
 })
 
 function fechaCorta(iso: string): string {
@@ -140,12 +143,15 @@ export function CurvaTemperaturaCanalesPorcino() {
         .filter(Boolean),
     ),
   )
-  // Lotes del firmador elegido (sin importar la fecha). Se excluyen los lotes
-  // que ya tienen curva registrada (salvo el que se esta editando).
+  // Lotes del firmador elegido (sin importar la fecha). Solo se excluyen los
+  // lotes cuya curva ya fue FINALIZADA (salvo el que se esta editando).
   const lotesDelDia = form.firmador
     ? (() => {
         const usados = new Set(
-          ordenes.map((o) => (o.lote || '').trim()).filter(Boolean),
+          ordenes
+            .filter((o) => o.finalizado)
+            .map((o) => (o.lote || '').trim())
+            .filter(Boolean),
         )
         const actual = (form.lote || '').trim()
         return Array.from(
@@ -241,13 +247,23 @@ export function CurvaTemperaturaCanalesPorcino() {
 
   function guardar(e: React.FormEvent) {
     e.preventDefault()
+    guardarOrden(false)
+  }
+
+  // Finaliza la curva: la guarda y saca el lote de la lista de disponibles.
+  function finalizar() {
+    guardarOrden(true)
+  }
+
+  function guardarOrden(finalizado: boolean) {
+    const datos = { ...form, finalizado: finalizado || Boolean(form.finalizado) }
     if (editandoId) {
       setOrdenes((prev) =>
-        prev.map((o) => (o.id === editandoId ? { ...form, id: editandoId } : o)),
+        prev.map((o) => (o.id === editandoId ? { ...datos, id: editandoId } : o)),
       )
       registrar('EDITÓ')
     } else {
-      setOrdenes((prev) => [{ ...form, id: crypto.randomUUID() }, ...prev])
+      setOrdenes((prev) => [{ ...datos, id: crypto.randomUUID() }, ...prev])
       registrar('CREÓ')
     }
     setMostrarForm(false)
@@ -494,6 +510,13 @@ export function CurvaTemperaturaCanalesPorcino() {
               className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
             >
               Guardar
+            </button>
+            <button
+              type="button"
+              onClick={finalizar}
+              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              Finalizar
             </button>
           </div>
         </form>
