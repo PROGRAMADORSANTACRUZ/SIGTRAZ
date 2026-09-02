@@ -35,6 +35,7 @@ interface Medicion {
   canal: string
   tcCanal: string
   tcCuarto: string
+  hp: string
   verificado: string
 }
 
@@ -60,6 +61,7 @@ const medicionVacia = (verificado = ''): Medicion => ({
   canal: '',
   tcCanal: '',
   tcCuarto: '',
+  hp: '',
   verificado,
 })
 
@@ -420,7 +422,7 @@ export function CurvaTemperaturaCanalesPorcino() {
               {form.mediciones.map((m, i) => (
                 <div
                   key={m.id}
-                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_auto_1fr_1fr_1fr_1.5fr_auto] md:items-end"
+                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
                 >
                   <div className="flex h-9 items-center text-sm font-semibold text-slate-400">
                     #{i + 1}
@@ -476,6 +478,22 @@ export function CurvaTemperaturaCanalesPorcino() {
                       value={m.tcCuarto}
                       onChange={(e) =>
                         actualizarMedicion(m.id, 'tcCuarto', soloDecimal(e.target.value))
+                      }
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-slate-600">
+                      HP
+                    </span>
+                    <input
+                      inputMode="decimal"
+                      data-no-upper
+                      disabled={i === 0}
+                      title={i === 0 ? 'Se habilita despues de agregar una medicion' : undefined}
+                      className={`${inputBase} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                      value={m.hp}
+                      onChange={(e) =>
+                        actualizarMedicion(m.id, 'hp', soloDecimal(e.target.value))
                       }
                     />
                   </label>
