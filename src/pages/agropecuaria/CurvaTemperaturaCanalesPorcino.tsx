@@ -518,6 +518,7 @@ export function CurvaTemperaturaCanalesPorcino() {
                     </span>
                     <input
                       type="time"
+                      lang="en-GB"
                       readOnly={!esAdmin}
                       data-no-upper
                       className={esAdmin ? inputBase : inputRO}
