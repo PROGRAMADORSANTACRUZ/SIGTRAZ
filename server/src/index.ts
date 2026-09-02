@@ -158,6 +158,25 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Error interno del servidor' })
 })
 
-app.listen(config.port, () => {
-  console.log(`API SIGTRAZ escuchando en http://localhost:${config.port}`)
-})
+// Asegura tablas que no viven en schema.sql y que antes se creaban a mano.
+// Es idempotente (CREATE TABLE IF NOT EXISTS), asi que puede correr en cada
+// arranque sin riesgo. Evita que la sincronizacion de Agropecuaria falle en
+// silencio cuando la tabla no existe en el servidor.
+async function asegurarTablas(): Promise<void> {
+  await query(
+    'CREATE TABLE IF NOT EXISTS agro_kv (' +
+      ' clave                VARCHAR(200) PRIMARY KEY,' +
+      ' valor                JSONB NOT NULL,' +
+      ' fecha_actualizacion  TIMESTAMP NOT NULL DEFAULT now()' +
+      ')',
+  )
+}
+
+asegurarTablas()
+  .then(() => console.log('Tablas base verificadas (agro_kv)'))
+  .catch((err) => console.error('No se pudieron verificar las tablas base:', err))
+  .finally(() => {
+    app.listen(config.port, () => {
+      console.log(`API SIGTRAZ escuchando en http://localhost:${config.port}`)
+    })
+  })

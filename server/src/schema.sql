@@ -233,3 +233,12 @@ CREATE TABLE IF NOT EXISTS programas (
     activo         BOOLEAN       NOT NULL DEFAULT true,
     fecha_creacion TIMESTAMP     NOT NULL DEFAULT now()
 );
+
+-- Almacen clave-valor para sincronizar entre dispositivos los modulos de
+-- Agropecuaria que guardan en localStorage (agro_*). Cada clave se refleja
+-- aqui como una fila JSONB. Tambien se asegura al arrancar el servidor.
+CREATE TABLE IF NOT EXISTS agro_kv (
+    clave                VARCHAR(200)  PRIMARY KEY,
+    valor                JSONB         NOT NULL,
+    fecha_actualizacion  TIMESTAMP     NOT NULL DEFAULT now()
+);

@@ -62,10 +62,11 @@ export function instalarSyncAgro(): void {
       // valor no-JSON: se envia tal cual
     }
     snapshotServidor.set(clave, valor)
-    // Fire and forget: la UI no debe esperar a la red.
-    api.putAgroKv(clave, parsed).catch(() => {
-      // Sin conexion: el valor queda en localStorage y se reintentara al
-      // proximo guardado.
+    // Fire and forget: la UI no debe esperar a la red. Si falla, se revierte el
+    // snapshot para reintentar en el proximo guardado y se deja rastro en consola.
+    api.putAgroKv(clave, parsed).catch((err) => {
+      snapshotServidor.delete(clave)
+      console.error(`No se pudo sincronizar "${clave}" con el servidor:`, err)
     })
   }
 }
