@@ -3,6 +3,7 @@ import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
 import { ModalEliminar } from '../../components/ModalEliminar'
+import { GraficaCurvaCanales } from '../../components/GraficaCurvaCanales'
 import { api } from '../../services/api'
 import { cuartosFriosSeed } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
@@ -188,6 +189,7 @@ export function CurvaTemperaturaCanales() {
   )
   const [busqueda, setBusqueda] = useState('')
   const [eliminarId, setEliminarId] = useState<string | null>(null)
+  const [curvaVer, setCurvaVer] = useState<Orden | null>(null)
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -857,6 +859,12 @@ export function CurvaTemperaturaCanales() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
                           <button
+                            onClick={() => setCurvaVer(o)}
+                            className="rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                          >
+                            Curva
+                          </button>
+                          <button
                             onClick={() => editar(o)}
                             className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
                           >
@@ -890,6 +898,14 @@ export function CurvaTemperaturaCanales() {
           error={errorEliminar}
           onCancelar={() => setEliminarId(null)}
           onConfirmar={confirmarEliminar}
+        />
+      )}
+
+      {curvaVer && (
+        <GraficaCurvaCanales
+          titulo={`Curva de temperatura · ${curvaVer.consecutivo}`}
+          canales={curvaVer.canales}
+          onCerrar={() => setCurvaVer(null)}
         />
       )}
     </div>
