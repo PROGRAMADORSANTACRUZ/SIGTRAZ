@@ -58,7 +58,7 @@ interface Orden {
 
 const medicionVacia = (verificado = ''): Medicion => ({
   id: crypto.randomUUID(),
-  caliente: verificado,
+  caliente: 'CALIENTE',
   hora: new Date().toTimeString().slice(0, 5),
   canal: '',
   tcCanal: '',
@@ -471,21 +471,32 @@ export function CurvaTemperaturaCanalesPorcino() {
               {form.mediciones.map((m, i) => (
                 <div
                   key={m.id}
-                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_1fr_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
+                  className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 bg-white p-3 md:grid-cols-[auto_7rem_auto_4.5rem_5.5rem_5.5rem_5.5rem_1fr_auto] md:items-end"
                 >
                   <div className="flex h-9 items-center text-sm font-semibold text-slate-400">
                     #{i + 1}
                   </div>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Caliente <span className="text-rose-500">*</span>
+                      Estado <span className="text-rose-500">*</span>
                     </span>
-                    <input
-                      data-no-upper
-                      className={inputBase}
-                      value={m.caliente}
-                      onChange={(e) => actualizarMedicion(m.id, 'caliente', e.target.value)}
-                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        actualizarMedicion(
+                          m.id,
+                          'caliente',
+                          m.caliente === 'FRIO' ? 'CALIENTE' : 'FRIO',
+                        )
+                      }
+                      className={`h-9 w-full rounded-md text-sm font-bold text-white shadow-sm transition ${
+                        m.caliente === 'FRIO'
+                          ? 'bg-blue-600 hover:bg-blue-700'
+                          : 'bg-red-600 hover:bg-red-700'
+                      }`}
+                    >
+                      {m.caliente === 'FRIO' ? 'FRIO' : 'CALIENTE'}
+                    </button>
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-600">
