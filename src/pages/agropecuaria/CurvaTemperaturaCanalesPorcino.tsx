@@ -7,6 +7,7 @@ import { GraficaCurvaCanales } from '../../components/GraficaCurvaCanales'
 import { api } from '../../services/api'
 import { cuartosFriosSeed } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
+import { cargarSucursales } from './sucursalesStore'
 
 const STORAGE_KEY = 'agro_curva_canales_porcino'
 const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
@@ -71,6 +72,7 @@ interface Orden {
   cliente: string
   numeroGuia: string
   cuartoFrio: string
+  sucursal: string
   canales: Canal[]
   // Estructura antigua; puede venir en registros guardados previamente.
   mediciones?: Medicion[]
@@ -135,6 +137,7 @@ const formVacio = (verificado = ''): Omit<Orden, 'id'> => ({
   cliente: '',
   numeroGuia: '',
   cuartoFrio: '',
+  sucursal: '',
   canales: [canalVacio(verificado)],
   finalizado: false,
 })
@@ -177,6 +180,7 @@ export function CurvaTemperaturaCanalesPorcino() {
   const [form, setForm] = useState(formVacio)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [anteMortem, setAnteMortem] = useState<AnteMortemLite[]>(cargarAnteMortem)
+  const [sucursales] = useState(cargarSucursales)
   // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
   const [filtroMes, setFiltroMes] = useState(() =>
     new Date().toLocaleDateString('en-CA').slice(0, 7),
@@ -417,6 +421,10 @@ export function CurvaTemperaturaCanalesPorcino() {
       setError(faltante)
       return
     }
+    if (finalizado && !form.sucursal.trim()) {
+      setError('Selecciona la sucursal para finalizar.')
+      return
+    }
     setError('')
     const datos = { ...form, finalizado: finalizado || Boolean(form.finalizado) }
     if (editandoId) {
@@ -488,7 +496,7 @@ export function CurvaTemperaturaCanalesPorcino() {
           onSubmit={guardar}
           className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-[7rem_7rem_minmax(0,1fr)_7rem_minmax(0,1fr)_8rem]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-[7rem_7rem_minmax(0,1fr)_7rem_minmax(0,1fr)_8rem_minmax(0,1fr)]">
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Consecutivo <span className="text-rose-500">*</span>
@@ -552,6 +560,18 @@ export function CurvaTemperaturaCanalesPorcino() {
                 onChange={(v) => actualizar('cuartoFrio', v)}
                 placeholder="Selecciona cuarto frío"
                 buscarPlaceholder="Buscar cuarto frío..."
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
+                Sucursal <span className="text-rose-500">*</span>
+              </span>
+              <SelectorBuscable
+                opciones={sucursales.map((s) => s.nombre)}
+                value={form.sucursal}
+                onChange={(v) => actualizar('sucursal', v)}
+                placeholder="Selecciona sucursal"
+                buscarPlaceholder="Buscar sucursal..."
               />
             </label>
           </div>

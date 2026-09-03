@@ -48,6 +48,22 @@ interface MedicionCurva {
   verificado: string
 }
 
+interface LecturaCurva {
+  id: string
+  fecha: string
+  hora: string
+  tcCanal: string
+  tcCuarto: string
+  hp: string
+}
+
+interface CanalCurva {
+  id: string
+  numero: string
+  verificado: string
+  lecturas: LecturaCurva[]
+}
+
 interface OrdenCurva {
   id: string
   consecutivo: string
@@ -56,7 +72,48 @@ interface OrdenCurva {
   lote: string
   cuartoFrio: string
   numeroGuia: string
-  mediciones: MedicionCurva[]
+  sucursal?: string
+  finalizado?: boolean
+  canales?: CanalCurva[]
+  mediciones?: MedicionCurva[]
+}
+
+// Filas de temperatura de una curva, desde el modelo nuevo (canales) o el
+// antiguo (mediciones).
+interface FilaCurva {
+  fecha: string
+  hora: string
+  canal: string
+  tcCanal: string
+  tcCuarto: string
+  verificado: string
+}
+
+function filasCurva(o: OrdenCurva): FilaCurva[] {
+  if (Array.isArray(o.canales) && o.canales.length) {
+    const filas: FilaCurva[] = []
+    o.canales.forEach((c) =>
+      (c.lecturas || []).forEach((l) =>
+        filas.push({
+          fecha: l.fecha || o.fecha || '',
+          hora: l.hora || '',
+          canal: c.numero || '',
+          tcCanal: l.tcCanal || '',
+          tcCuarto: l.tcCuarto || '',
+          verificado: c.verificado || '',
+        }),
+      ),
+    )
+    return filas
+  }
+  return (o.mediciones || []).map((m) => ({
+    fecha: o.fecha || '',
+    hora: m.hora || '',
+    canal: m.canal || '',
+    tcCanal: m.tcCanal || '',
+    tcCuarto: m.tcCuarto || '',
+    verificado: m.verificado || '',
+  }))
 }
 
 function cargarCurvas(): OrdenCurva[] {
@@ -429,15 +486,15 @@ function construirHTML(
     .join('')
   const curvaHTML = (curvasCliente || [])
     .map((o) => {
-      const filas = (o.mediciones || [])
+      const filas = filasCurva(o)
         .map(
-          (m) => `<tr>
-      <td>${escaparHtml(fechaCorta(o.fecha))}</td>
-      <td>${escaparHtml(m.hora)}</td>
-      <td>${escaparHtml(m.canal)}</td>
-      <td>${escaparHtml(m.tcCanal ? m.tcCanal + '°C' : '')}</td>
-      <td>${escaparHtml(m.tcCuarto ? m.tcCuarto + '°C' : '')}</td>
-      <td>${escaparHtml(m.verificado)}</td>
+          (f) => `<tr>
+      <td>${escaparHtml(fechaCorta(f.fecha))}</td>
+      <td>${escaparHtml(f.hora)}</td>
+      <td>${escaparHtml(f.canal)}</td>
+      <td>${escaparHtml(f.tcCanal ? f.tcCanal + '°C' : '')}</td>
+      <td>${escaparHtml(f.tcCuarto ? f.tcCuarto + '°C' : '')}</td>
+      <td>${escaparHtml(f.verificado)}</td>
     </tr>`,
         )
         .join('')
@@ -634,6 +691,7 @@ export function Certificado() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState(formVacio)
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [sucursalOriginal, setSucursalOriginal] = useState('')
   const [firmantes] = useState(cargarFirmantes)
   const [sucursales] = useState(cargarSucursales)
   const [curvas, setCurvas] = useState<OrdenCurva[]>(cargarCurvas)
@@ -671,9 +729,11 @@ export function Certificado() {
     return true
   })
 
-  // Curvas de temperatura asociadas a cualquiera de los lotes del certificado.
-  const curvasCliente = form.lotes.length
-    ? curvas.filter((o) => form.lotes.includes(o.lote || ''))
+  // Curvas de temperatura FINALIZADAS de la sucursal elegida en el paso 1.
+  const curvasCliente = form.dirigidoA
+    ? curvas.filter(
+        (o) => (o.sucursal || '') === form.dirigidoA && o.finalizado,
+      )
     : []
 
   // Lotes de Ante Mortem del cliente (firmador) seleccionado, sin importar la
@@ -742,9 +802,7 @@ export function Certificado() {
           g.totalSacrificados,
       ),
   )
-  const seccion4Completa = curvasCliente.some(
-    (o) => (o.mediciones?.length || 0) > 0,
-  )
+  const seccion4Completa = curvasCliente.some((o) => filasCurva(o).length > 0)
   const seccion5Completa = Boolean(form.curvaAlmacenImg)
   const seccionesCompletas = [
     seccion2Completa,
@@ -903,6 +961,7 @@ export function Certificado() {
           : []
     setForm({ ...formVacio(), ...datos, lotes })
     setEditandoId(c.id)
+    setSucursalOriginal(c.dirigidoA || '')
     setMostrarForm(true)
   }
 
@@ -917,10 +976,23 @@ export function Certificado() {
     setErrorForm('')
     const referencia = form.numero || form.dirigidoA || 'CERTIFICADO SIN NUMERO'
     if (editandoId) {
-      setCertificados((prev) =>
-        prev.map((c) => (c.id === editandoId ? { ...form, id: editandoId } : c)),
-      )
-      registrar('EDITÓ', referencia)
+      // Si al editar se cambia la sucursal a otro punto de venta, se crea un
+      // certificado NUEVO con otro consecutivo y se conserva el original, ya
+      // que una misma curva de temperatura sirve para varias sucursales.
+      if ((form.dirigidoA || '') !== sucursalOriginal) {
+        const nuevo = {
+          ...form,
+          id: crypto.randomUUID(),
+          numero: siguienteNumero(certificados),
+        }
+        setCertificados((prev) => [nuevo, ...prev])
+        registrar('CREÓ', nuevo.numero || referencia)
+      } else {
+        setCertificados((prev) =>
+          prev.map((c) => (c.id === editandoId ? { ...form, id: editandoId } : c)),
+        )
+        registrar('EDITÓ', referencia)
+      }
     } else {
       setCertificados((prev) => [{ ...form, id: crypto.randomUUID() }, ...prev])
       registrar('CREÓ', referencia)
@@ -986,14 +1058,8 @@ export function Certificado() {
   async function exportarPDF(cert: Certificado) {
     const membrete = await cargarMembrete()
     const logo = await cargarImagen('/logos/agropecuaria-santacruz.png')
-    const lotesCert =
-      cert.lotes && cert.lotes.length
-        ? cert.lotes
-        : cert.lote
-          ? cert.lote.split(',').map((s) => s.trim())
-          : []
-    const curvasCert = cargarCurvas().filter((o) =>
-      lotesCert.includes(o.lote || ''),
+    const curvasCert = cargarCurvas().filter(
+      (o) => (o.sucursal || '') === (cert.dirigidoA || '') && o.finalizado,
     )
     const win = window.open('', '_blank')
     if (!win) return
@@ -1005,14 +1071,8 @@ export function Certificado() {
   }
 
   async function exportarWord(cert: Certificado) {
-    const lotesCert =
-      cert.lotes && cert.lotes.length
-        ? cert.lotes
-        : cert.lote
-          ? cert.lote.split(',').map((s) => s.trim())
-          : []
-    const curvasCert = cargarCurvas().filter((o) =>
-      lotesCert.includes(o.lote || ''),
+    const curvasCert = cargarCurvas().filter(
+      (o) => (o.sucursal || '') === (cert.dirigidoA || '') && o.finalizado,
     )
     // 1) Intenta rellenar la plantilla Word con marca de agua real.
     try {
@@ -1058,13 +1118,13 @@ export function Certificado() {
           curvas: curvasCert.map((o) => ({
             cuarto: o.cuartoFrio || '',
             cCliente: o.cliente || '',
-            mediciones: (o.mediciones || []).map((m) => ({
-              cFecha: fechaCorta(o.fecha),
-              cHora: m.hora,
-              cCanal: m.canal,
-              cTcCanal: m.tcCanal ? m.tcCanal + '°C' : '',
-              cTcCuarto: m.tcCuarto ? m.tcCuarto + '°C' : '',
-              cVerif: m.verificado,
+            mediciones: filasCurva(o).map((f) => ({
+              cFecha: fechaCorta(f.fecha),
+              cHora: f.hora,
+              cCanal: f.canal,
+              cTcCanal: f.tcCanal ? f.tcCanal + '°C' : '',
+              cTcCuarto: f.tcCuarto ? f.tcCuarto + '°C' : '',
+              cVerif: f.verificado,
             })),
           })),
         })
@@ -1549,14 +1609,13 @@ export function Certificado() {
                   </div>
                 )
               ) : i === 2 ? (
-                !form.lotes.length ? (
+                !form.dirigidoA ? (
                   <p className="text-sm text-slate-400">
-                    Agrega lotes en el paso 1 para ver las curvas asociadas.
+                    Selecciona la sucursal en el paso 1 para ver las curvas.
                   </p>
                 ) : curvasCliente.length === 0 ? (
                   <p className="text-sm text-slate-400">
-                    No hay curvas registradas para los lotes{' '}
-                    {form.lotes.join(', ')}.
+                    No hay curvas finalizadas para la sucursal {form.dirigidoA}.
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -1592,18 +1651,18 @@ export function Certificado() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                              {o.mediciones.map((m) => (
-                                <tr key={m.id}>
-                                  <td className="px-3 py-2">{fechaCorta(o.fecha)}</td>
-                                  <td className="px-3 py-2">{m.hora}</td>
-                                  <td className="px-3 py-2">{m.canal}</td>
+                              {filasCurva(o).map((f, idx) => (
+                                <tr key={idx}>
+                                  <td className="px-3 py-2">{fechaCorta(f.fecha)}</td>
+                                  <td className="px-3 py-2">{f.hora}</td>
+                                  <td className="px-3 py-2">{f.canal}</td>
                                   <td className="px-3 py-2">
-                                    {m.tcCanal ? `${m.tcCanal}°C` : ''}
+                                    {f.tcCanal ? `${f.tcCanal}°C` : ''}
                                   </td>
                                   <td className="px-3 py-2">
-                                    {m.tcCuarto ? `${m.tcCuarto}°C` : ''}
+                                    {f.tcCuarto ? `${f.tcCuarto}°C` : ''}
                                   </td>
-                                  <td className="px-3 py-2">{m.verificado}</td>
+                                  <td className="px-3 py-2">{f.verificado}</td>
                                 </tr>
                               ))}
                             </tbody>
