@@ -133,6 +133,7 @@ interface Certificado {
   digitadoPor: string
   dirigidoA: string
   kilos: string
+  tipoMedida: 'kilos' | 'unidades'
   fechaSacrificio: string
   fechaProduccion: string
   fechaDespacho: string
@@ -173,6 +174,7 @@ const formVacio = (): Omit<Certificado, 'id'> => ({
   digitadoPor: '',
   dirigidoA: '',
   kilos: '',
+  tipoMedida: 'kilos',
   fechaSacrificio: '',
   fechaProduccion: '',
   fechaDespacho: '',
@@ -735,6 +737,16 @@ export function CertificadoPorcino() {
       )
     : []
 
+  // Solo las sucursales que tienen al menos una curva de temperatura
+  // finalizada pueden elegirse en el paso 1.
+  const sucursalesConCurva = Array.from(
+    new Set(
+      curvas
+        .filter((o) => o.finalizado && (o.sucursal || '').trim())
+        .map((o) => (o.sucursal || '').trim()),
+    ),
+  )
+
   // Lotes de Ante Mortem del cliente (firmador) seleccionado, sin importar la
   // fecha. Se excluyen los lotes que ya tienen certificado creado y los que ya
   // se agregaron a este certificado.
@@ -1229,7 +1241,7 @@ export function CertificadoPorcino() {
                   Sucursal
                 </span>
                 <SelectorBuscable
-                  opciones={sucursales.map((s) => s.nombre)}
+                  opciones={sucursalesConCurva}
                   value={form.dirigidoA}
                   onChange={(v) => actualizar('dirigidoA', v)}
                   placeholder="Seleccione una sucursal..."
@@ -1272,12 +1284,38 @@ export function CertificadoPorcino() {
                 )}
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-700">
-                  Kilos *
-                </span>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-slate-700">
+                    {form.tipoMedida === 'unidades' ? 'Unidades (canales) *' : 'Kilos *'}
+                  </span>
+                  <div className="inline-flex overflow-hidden rounded-md border border-slate-300 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => actualizar('tipoMedida', 'kilos')}
+                      className={`px-2 py-0.5 font-medium ${
+                        form.tipoMedida !== 'unidades'
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-white text-slate-600'
+                      }`}
+                    >
+                      Kilos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => actualizar('tipoMedida', 'unidades')}
+                      className={`px-2 py-0.5 font-medium ${
+                        form.tipoMedida === 'unidades'
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-white text-slate-600'
+                      }`}
+                    >
+                      Unidades
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="number"
-                  step="0.01"
+                  step={form.tipoMedida === 'unidades' ? '1' : '0.01'}
                   required
                   data-no-upper
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
