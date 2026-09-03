@@ -1285,35 +1285,20 @@ export function Certificado() {
                 )}
               </label>
               <label className="block">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-slate-700">
-                    {form.tipoMedida === 'unidades' ? 'Unidades (canales) *' : 'Kilos *'}
-                  </span>
-                  <div className="inline-flex overflow-hidden rounded-md border border-slate-300 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => actualizar('tipoMedida', 'kilos')}
-                      className={`px-2 py-0.5 font-medium ${
-                        form.tipoMedida !== 'unidades'
-                          ? 'bg-brand-600 text-white'
-                          : 'bg-white text-slate-600'
-                      }`}
-                    >
-                      Kilos
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => actualizar('tipoMedida', 'unidades')}
-                      className={`px-2 py-0.5 font-medium ${
-                        form.tipoMedida === 'unidades'
-                          ? 'bg-brand-600 text-white'
-                          : 'bg-white text-slate-600'
-                      }`}
-                    >
-                      Unidades
-                    </button>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    actualizar(
+                      'tipoMedida',
+                      form.tipoMedida === 'unidades' ? 'kilos' : 'unidades',
+                    )
+                  }
+                  className={`mb-1 rounded-md px-3 py-1.5 text-sm font-semibold text-white ${
+                    form.tipoMedida === 'unidades' ? 'bg-blue-600' : 'bg-red-600'
+                  }`}
+                >
+                  {form.tipoMedida === 'unidades' ? 'Unidades' : 'Kilos'}
+                </button>
                 <input
                   type="number"
                   step={form.tipoMedida === 'unidades' ? '1' : '0.01'}
