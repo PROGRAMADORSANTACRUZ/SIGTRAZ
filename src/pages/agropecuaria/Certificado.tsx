@@ -1293,7 +1293,7 @@ export function Certificado() {
                       form.tipoMedida === 'unidades' ? 'kilos' : 'unidades',
                     )
                   }
-                  className={`mb-1 rounded-md px-3 py-1.5 text-sm font-semibold text-white ${
+                  className={`mb-1 inline-block self-start rounded-md px-3 py-0.5 text-sm font-semibold text-white ${
                     form.tipoMedida === 'unidades' ? 'bg-blue-600' : 'bg-red-600'
                   }`}
                 >
