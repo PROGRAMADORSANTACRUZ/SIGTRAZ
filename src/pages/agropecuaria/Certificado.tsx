@@ -3,7 +3,6 @@ import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
-import { clientesSeed, type ClienteAgro } from './clientesSeed'
 import { cargarFirmantes, cargarSucursales } from './sucursalesStore'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
 import { ModalEliminar } from '../../components/ModalEliminar'
@@ -16,7 +15,6 @@ import {
 import { useCatalogo } from './catalogosStore'
 
 const STORAGE_KEY = 'agro_certificados'
-const CLIENTES_KEY = 'agro_clientes'
 const CURVA_KEY = 'agro_curva_canales'
 // Plantilla Word (.docx) con la marca de agua real en el encabezado y
 // marcadores {numero} {fecha} {dirigido} {cuerpo} {firmante} {cargo}.
@@ -389,16 +387,6 @@ async function inyectarImagenAlmacen(
   }
 }
 
-function cargarClientes(): ClienteAgro[] {
-  try {
-    const raw = localStorage.getItem(CLIENTES_KEY)
-    if (raw) return JSON.parse(raw) as ClienteAgro[]
-  } catch {
-    // usa la semilla si no hay datos guardados
-  }
-  return clientesSeed
-}
-
 function escaparHtml(texto: string): string {
   return texto
     .replace(/&/g, '&amp;')
@@ -646,7 +634,6 @@ export function Certificado() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState(formVacio)
   const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [clientes] = useState<ClienteAgro[]>(cargarClientes)
   const [firmantes] = useState(cargarFirmantes)
   const [sucursales] = useState(cargarSucursales)
   const [curvas, setCurvas] = useState<OrdenCurva[]>(cargarCurvas)
@@ -1180,14 +1167,14 @@ export function Certificado() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">
-                  Cliente
+                  Sucursal
                 </span>
                 <SelectorBuscable
-                  opciones={clientes.map((c) => c.nombre)}
+                  opciones={sucursales.map((s) => s.nombre)}
                   value={form.dirigidoA}
                   onChange={(v) => actualizar('dirigidoA', v)}
-                  placeholder="Seleccione un cliente..."
-                  buscarPlaceholder="Buscar cliente..."
+                  placeholder="Seleccione una sucursal..."
+                  buscarPlaceholder="Buscar sucursal..."
                 />
               </label>
               <label className="block">
