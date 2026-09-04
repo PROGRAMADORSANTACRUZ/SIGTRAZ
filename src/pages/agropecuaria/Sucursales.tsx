@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { inputClase } from '../../components/ui'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
 import { api } from '../../services/api'
 import { useCatalogo } from './catalogosStore'
 import { firmadoresSeed } from './datosCatalogos'
 import {
+  asegurarBaseOlimpica,
   cargarSucursales,
   guardarSucursales,
   type Sucursal,
@@ -34,6 +35,17 @@ export function Sucursales() {
     setSucursales(lista)
     guardarSucursales(lista)
   }
+
+  // Siembra el catalogo base de Olimpica una sola vez por navegador.
+  useEffect(() => {
+    if (localStorage.getItem('sigtraz_seed_olimpica_v1')) return
+    localStorage.setItem('sigtraz_seed_olimpica_v1', '1')
+    const { lista, agregadas } = asegurarBaseOlimpica(cargarSucursales())
+    if (agregadas > 0) {
+      setSucursales(lista)
+      guardarSucursales(lista)
+    }
+  }, [])
 
   async function importarPuntosVenta() {
     setImportando(true)
