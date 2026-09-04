@@ -524,7 +524,7 @@ export function CurvaTemperaturaCanalesPorcino() {
           onSubmit={guardar}
           className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-[7rem_7rem_minmax(0,1fr)_7rem_minmax(0,1fr)_8rem_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-[7rem_7rem_minmax(0,1fr)_7rem_minmax(0,1fr)_5.5rem_minmax(0,1fr)]">
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Consecutivo <span className="text-rose-500">*</span>
