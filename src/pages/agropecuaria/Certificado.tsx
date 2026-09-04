@@ -868,18 +868,32 @@ export function Certificado() {
     } catch {
       pos = []
     }
+    let ante: { fechaBeneficio?: string; loteSacrificio?: string }[] = []
+    try {
+      ante = JSON.parse(localStorage.getItem('agro_antemortem') || '[]')
+    } catch {
+      ante = []
+    }
     const guias: GuiaTransporte[] = []
     const fechasSet = new Set<string>()
     lotes.forEach((lote) => {
       const l = lote.trim().toUpperCase()
       const fechas = Array.from(
         new Set(
-          pos
-            .filter(
-              (r) => String(r.loteSacrificio || '').trim().toUpperCase() === l,
-            )
-            .map((r) => String(r.fecha || '').trim())
-            .filter(Boolean),
+          [
+            ...pos
+              .filter(
+                (r) =>
+                  String(r.loteSacrificio || '').trim().toUpperCase() === l,
+              )
+              .map((r) => String(r.fecha || '').trim()),
+            ...ante
+              .filter(
+                (r) =>
+                  String(r.loteSacrificio || '').trim().toUpperCase() === l,
+              )
+              .map((r) => String(r.fechaBeneficio || '').trim()),
+          ].filter(Boolean),
         ),
       ).sort()
       fechas.forEach((f) => {
