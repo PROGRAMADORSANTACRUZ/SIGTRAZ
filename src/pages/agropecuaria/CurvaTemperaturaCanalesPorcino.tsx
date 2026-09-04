@@ -249,8 +249,8 @@ export function CurvaTemperaturaCanalesPorcino() {
         .filter(Boolean),
     ),
   )
-  // Lotes del firmador elegido (sin importar la fecha). Solo se excluyen los
-  // lotes cuya curva ya fue FINALIZADA (salvo el que se esta editando).
+  // Lotes del firmador elegido, solo con ingreso HOY. Se excluyen los lotes
+  // cuya curva ya fue FINALIZADA (salvo el que se esta editando).
   const lotesDelDia = form.firmador
     ? (() => {
         const usados = new Set(
@@ -263,7 +263,7 @@ export function CurvaTemperaturaCanalesPorcino() {
         return Array.from(
           new Set(
             anteMortem
-              .filter((r) => r.firmador === form.firmador)
+              .filter((r) => r.firmador === form.firmador && r.fechaIngreso === hoy)
               .map((r) => (r.loteSacrificio || '').trim())
               .filter((v) => v !== '' && (v === actual || !usados.has(v))),
           ),
