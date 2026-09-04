@@ -233,8 +233,26 @@ export function AnteMortemPorcino() {
   // Persiste en localStorage; agroSync refleja estos datos en el servidor para
   // compartirlos entre dispositivos (PC <-> celular).
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(registros))
+    const nuevo = JSON.stringify(registros)
+    if (localStorage.getItem(STORAGE_KEY) === nuevo) return
+    localStorage.setItem(STORAGE_KEY, nuevo)
   }, [registros])
+
+  // Mantiene la lista en sincronía con otras pestañas del mismo navegador. Sin
+  // esto, una pestaña con estado viejo (p. ej. sin los lotes recién cargados en
+  // otra pestaña) sobrescribiría localStorage al guardar y borraría esos datos.
+  useEffect(() => {
+    function sincronizar(e: StorageEvent) {
+      if (e.key !== STORAGE_KEY) return
+      try {
+        setRegistros(JSON.parse(e.newValue || '[]'))
+      } catch {
+        // valor corrupto: se ignora
+      }
+    }
+    window.addEventListener('storage', sincronizar)
+    return () => window.removeEventListener('storage', sincronizar)
+  }, [])
 
   const registrosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
