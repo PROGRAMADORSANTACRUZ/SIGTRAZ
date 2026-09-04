@@ -558,6 +558,7 @@ export function CertificadoDecomiso() {
                 <th className="px-4 py-3">Fecha sacrificio</th>
                 <th className="px-4 py-3">Cliente</th>
                 <th className="px-4 py-3">Lote</th>
+                <th className="px-4 py-3">Gancho</th>
                 <th className="px-4 py-3">Hallazgos</th>
                 <th className="px-4 py-3">Acciones</th>
               </tr>
@@ -580,6 +581,7 @@ export function CertificadoDecomiso() {
                   <td className="px-4 py-3">{c.fechaSacrificio}</td>
                   <td className="px-4 py-3">{c.cliente}</td>
                   <td className="px-4 py-3">{c.lote}</td>
+                  <td className="px-4 py-3"></td>
                   <td className="px-4 py-3">{c.hallazgos.length}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
@@ -596,7 +598,7 @@ export function CertificadoDecomiso() {
               {filtrados.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-8 text-center text-slate-400"
                   >
                     Aún no hay certificados. Se generan desde Pos Mortem al
