@@ -746,49 +746,52 @@ export function CertificadoPorcino() {
     ),
   )
 
-  // Firmador asociado a la sucursal elegida (segun su curva de temperatura).
-  // Con el se traen los lotes de Ante Mortem.
-  const firmadorActivo = form.dirigidoA
-    ? (
-        curvas.find(
-          (o) => (o.sucursal || '') === form.dirigidoA && o.finalizado,
-        )?.firmador || ''
-      ).trim()
-    : ''
-
-  // Lotes de Ante Mortem del firmador ligado a la sucursal, sin importar la
-  // fecha. Se excluyen los lotes que ya tienen certificado creado y los que ya
-  // se agregaron a este certificado.
-  const lotesDelDia = (() => {
-    if (!firmadorActivo) return []
-    try {
-      const lista = JSON.parse(
-        localStorage.getItem('agro_antemortem_porcino') || '[]',
-      ) as { firmador?: string; loteSacrificio?: string }[]
-      const usados = new Set<string>()
-      certificados.forEach((c) => {
-        const ls =
-          c.lotes && c.lotes.length
-            ? c.lotes
-            : c.lote
-              ? c.lote.split(',').map((x) => x.trim())
-              : []
-        ls.forEach((l) => l && usados.add(l))
-      })
-      return Array.from(
+  // Firmadores con curva de temperatura finalizada para la sucursal elegida.
+  const firmadoresConCurva = form.dirigidoA
+    ? Array.from(
         new Set(
-          lista
-            .filter((r) => (r.firmador || '') === firmadorActivo)
-            .map((r) => String(r.loteSacrificio || '').trim())
+          curvas
             .filter(
-              (v) =>
-                v !== '' && !usados.has(v) && !form.lotes.includes(v),
-            ),
+              (o) =>
+                o.finalizado &&
+                (o.sucursal || '') === form.dirigidoA &&
+                (o.firmador || '').trim(),
+            )
+            .map((o) => (o.firmador || '').trim()),
         ),
       )
-    } catch {
-      return []
-    }
+    : []
+
+  // Lotes que tienen curva de temperatura finalizada para la sucursal y el
+  // firmador elegidos. Se excluyen los que ya tienen certificado y los ya
+  // agregados a este certificado.
+  const lotesDelDia = (() => {
+    if (!form.dirigidoA || !form.tienda) return []
+    const usados = new Set<string>()
+    certificados.forEach((c) => {
+      const ls =
+        c.lotes && c.lotes.length
+          ? c.lotes
+          : c.lote
+            ? c.lote.split(',').map((x) => x.trim())
+            : []
+      ls.forEach((l) => l && usados.add(l))
+    })
+    return Array.from(
+      new Set(
+        curvas
+          .filter(
+            (o) =>
+              o.finalizado &&
+              (o.sucursal || '') === form.dirigidoA &&
+              (o.firmador || '') === form.tienda,
+          )
+          .map((o) => String(o.lote || '').trim())
+          .filter(
+            (v) => v !== '' && !usados.has(v) && !form.lotes.includes(v),
+          ),
+      ),
+    )
   })()
 
   const fechasSacrificio = form.fechaSacrificio
@@ -1259,48 +1262,15 @@ export function CertificadoPorcino() {
                     setForm((prev) => ({
                       ...prev,
                       dirigidoA: v,
-                      tienda: v,
                       sucursal: v,
+                      tienda: '',
+                      lote: '',
+                      lotes: [],
                     }))
                   }
                   placeholder="Seleccione una sucursal..."
                   buscarPlaceholder="Buscar sucursal..."
                 />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-700">
-                  Lotes
-                </span>
-                <SelectorBuscable
-                  opciones={lotesDelDia}
-                  value=""
-                  onChange={(v) => agregarLoteCert(v)}
-                  permitirLibre
-                  placeholder={
-                    form.dirigidoA ? 'Agrega uno o varios lotes' : 'Elige cliente'
-                  }
-                  buscarPlaceholder="Buscar lote..."
-                />
-                {form.lotes.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {form.lotes.map((l) => (
-                      <span
-                        key={l}
-                        className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
-                      >
-                        {l}
-                        <button
-                          type="button"
-                          onClick={() => quitarLoteCert(l)}
-                          className="text-brand-500 hover:text-brand-800"
-                          aria-label="Quitar lote"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
               </label>
               <label className="block">
                 <button
@@ -1406,7 +1376,7 @@ export function CertificadoPorcino() {
                           readOnly
                           className="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600 focus:outline-none"
                           value=""
-                          placeholder="Agrega lotes en el paso 1"
+                          placeholder="Selecciona los lotes"
                         />
                       )}
                     </label>
@@ -1442,35 +1412,58 @@ export function CertificadoPorcino() {
                       <span className="mb-1 block text-sm font-medium text-slate-700">
                         Firmador <span className="text-rose-500">*</span>
                       </span>
-                      <input
-                        readOnly
-                        className="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600 focus:outline-none"
-                        value={firmadorActivo}
-                        placeholder="Selecciona la sucursal (paso 1)"
+                      <SelectorBuscable
+                        opciones={firmadoresConCurva}
+                        value={form.tienda}
+                        onChange={(v) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            tienda: v,
+                            ...construirDatosLotes([], prev),
+                          }))
+                        }
+                        placeholder={
+                          form.dirigidoA
+                            ? 'Selecciona el firmador'
+                            : 'Elige la sucursal (paso 1)'
+                        }
+                        buscarPlaceholder="Buscar firmador..."
                       />
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-sm font-medium text-slate-700">
                         Lotes <span className="text-rose-500">*</span>
                       </span>
-                      {form.lotes.length > 0 ? (
-                        <div className="flex min-h-[42px] flex-wrap items-center gap-2 rounded-md border border-slate-300 bg-slate-100 px-3 py-2">
+                      <SelectorBuscable
+                        opciones={lotesDelDia}
+                        value=""
+                        onChange={(v) => agregarLoteCert(v)}
+                        placeholder={
+                          form.tienda
+                            ? 'Agrega uno o varios lotes'
+                            : 'Elige el firmador'
+                        }
+                        buscarPlaceholder="Buscar lote..."
+                      />
+                      {form.lotes.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
                           {form.lotes.map((l) => (
                             <span
                               key={l}
-                              className="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+                              className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
                             >
                               {l}
+                              <button
+                                type="button"
+                                onClick={() => quitarLoteCert(l)}
+                                className="text-brand-500 hover:text-brand-800"
+                                aria-label="Quitar lote"
+                              >
+                                ×
+                              </button>
                             </span>
                           ))}
                         </div>
-                      ) : (
-                        <input
-                          readOnly
-                          className="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600 focus:outline-none"
-                          value=""
-                          placeholder="Agrega lotes en el paso 1"
-                        />
                       )}
                     </label>
                   </div>
@@ -1523,7 +1516,7 @@ export function CertificadoPorcino() {
               ) : i === 1 ? (
                 form.guias.length === 0 ? (
                   <p className="text-sm text-slate-400">
-                    Agrega lotes en el paso 1 para generar las guías de
+                    Agrega lotes en el paso 2 para generar las guías de
                     transporte.
                   </p>
                 ) : (
