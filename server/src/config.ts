@@ -16,8 +16,8 @@ export const config = {
   seedPassword: process.env.SEED_PASSWORD ?? 'sigtraz123',
   // SSO con la Suite Santa Cruz (canje de tickets server-to-server).
   sso: {
-    suiteUrl: (process.env.SUITE_URL ?? process.env.SCTOOLS_URL ?? 'http://localhost:8000').replace(/\/$/, ''),
-    sharedSecret: process.env.SSO_SHARED_SECRET ?? '',
+    suiteUrl: (process.env.SUITE_URL ?? process.env.SCTOOLS_URL ?? 'http://localhost:8000').trim().replace(/\/$/, ''),
+    sharedSecret: (process.env.SSO_SHARED_SECRET ?? '').trim(),
   },
   db: {
     host: requerido('DB_HOST', 'localhost'),

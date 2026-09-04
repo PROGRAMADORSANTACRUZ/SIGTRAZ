@@ -275,19 +275,30 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
   })
 
   if (resp.status === 401) {
-    // Token ausente, invalido o expirado: forzar re-login.
-    setToken(null)
     const ruta = window.location.pathname
-    // Las rutas publicas (login y trazabilidad del QR) no deben redirigir.
+    // Rutas publicas (login, QR de trazabilidad y callback SSO) no deben
+    // redirigir: en el SSO queremos ver el error real del canje del ticket,
+    // no rebotar en silencio a /login.
     const esRutaPublica =
       ruta === '/login' ||
       ruta.startsWith('/t/') ||
       ruta.startsWith('/ta/') ||
-      ruta.startsWith('/ts/')
+      ruta.startsWith('/ts/') ||
+      ruta.startsWith('/sso/')
     if (!esRutaPublica) {
+      setToken(null)
       window.location.href = '/login'
+      throw new Error('Sesion expirada')
     }
-    throw new Error('Sesion expirada')
+    // Propaga el mensaje real del servidor (p. ej. "Ticket SSO invalido").
+    let detalle = ''
+    try {
+      const data = await resp.json()
+      detalle = data.errores?.join(', ') ?? data.error ?? ''
+    } catch {
+      detalle = resp.statusText
+    }
+    throw new Error(detalle || 'No autorizado')
   }
 
   if (!resp.ok) {
