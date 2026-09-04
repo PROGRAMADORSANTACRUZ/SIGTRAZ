@@ -118,6 +118,106 @@ function filasCurva(o: OrdenCurva): FilaCurva[] {
   }))
 }
 
+// Clave ordenable: fecha ISO + hora normalizada a HH:MM.
+function claveOrdenCurva(fecha: string, hora: string): string {
+  const [h, m] = (hora || '').split(':')
+  const hh = String(parseInt(h, 10) || 0).padStart(2, '0')
+  const mm = String(parseInt(m, 10) || 0).padStart(2, '0')
+  return `${fecha} ${hh}:${mm}`
+}
+
+// Trazo suave (Catmull-Rom -> Bezier) que pasa por todos los puntos.
+function lineaSuaveCurva(pts: [number, number][]): string {
+  if (pts.length === 0) return ''
+  if (pts.length < 3) return 'M ' + pts.map((p) => `${p[0]},${p[1]}`).join(' L ')
+  let d = `M ${pts[0][0]},${pts[0][1]}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[i + 2] || p2
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6
+    d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`
+  }
+  return d
+}
+
+// Genera el SVG (como texto) de la curva de temperatura de canal para el PDF,
+// uniendo cronologicamente las lecturas de tcCanal de todos los canales.
+function graficoCurvaSVG(o: OrdenCurva): string {
+  const pts = filasCurva(o)
+    .map((f) => ({
+      fecha: f.fecha || '',
+      hora: f.hora || '',
+      t: parseFloat((f.tcCanal || '').replace(',', '.')),
+    }))
+    .filter((p) => Number.isFinite(p.t))
+    .sort((a, b) =>
+      claveOrdenCurva(a.fecha, a.hora).localeCompare(
+        claveOrdenCurva(b.fecha, b.hora),
+      ),
+    )
+  if (!pts.length) return ''
+  const W = 680
+  const H = 300
+  const M = { top: 16, right: 18, bottom: 34, left: 38 }
+  const plotW = W - M.left - M.right
+  const plotH = H - M.top - M.bottom
+  const yMin = 0
+  const yMax = 42
+  const yStep = 6
+  const n = pts.length
+  const x = (i: number) =>
+    M.left + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW)
+  const y = (t: number) => M.top + plotH - ((t - yMin) / (yMax - yMin)) * plotH
+  const gridY: number[] = []
+  for (let t = yMin; t <= yMax; t += yStep) gridY.push(t)
+  const ejeY = gridY
+    .map(
+      (t) =>
+        `<line x1="${M.left}" y1="${y(t)}" x2="${M.left + plotW}" y2="${y(
+          t,
+        )}" stroke="#eef2f7"/><text x="${M.left - 6}" y="${
+          y(t) + 4
+        }" text-anchor="end" font-size="10" fill="#94a3b8">${t.toFixed(0)}</text>`,
+    )
+    .join('')
+  const ejeX = pts
+    .map(
+      (_p, i) =>
+        `<text x="${x(i)}" y="${
+          M.top + plotH + 18
+        }" text-anchor="middle" font-size="9" fill="#94a3b8">${i + 1}</text>`,
+    )
+    .join('')
+  const trazo = lineaSuaveCurva(pts.map((p, i) => [x(i), y(p.t)]))
+  const puntos = pts
+    .map((p, i) => {
+      const py = y(p.t)
+      const arriba = py > 40
+      return `<circle cx="${x(i)}" cy="${py}" r="3" fill="#fff" stroke="#0e7490" stroke-width="2"/><text x="${x(
+        i,
+      )}" y="${
+        arriba ? py - 6 : py + 13
+      }" text-anchor="middle" font-size="9" font-weight="600" fill="#0f172a">${p.t.toFixed(
+        1,
+      )}</text>`
+    })
+    .join('')
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="${M.left}" y="${M.top}" width="${plotW}" height="${plotH}" fill="#ffffff" stroke="#e2e8f0"/>
+    ${ejeY}${ejeX}
+    <text x="${M.left + plotW / 2}" y="${
+      H - 4
+    }" text-anchor="middle" font-size="11" fill="#64748b">Lectura</text>
+    <path d="${trazo}" fill="none" stroke="#0e7490" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${puntos}
+  </svg>`
+}
+
 function cargarCurvas(): OrdenCurva[] {
   try {
     const raw = localStorage.getItem(CURVA_KEY)
@@ -540,6 +640,11 @@ function construirHTML(
       </td>
     </tr>
   </table>
+  ${
+    graficoCurvaSVG(o)
+      ? `<div class="grafico-canal"><div class="grafico-titulo">CURVA DE TEMPERATURA DE CANAL</div>${graficoCurvaSVG(o)}</div>`
+      : ''
+  }
 </div></div>`
     })
     .join('')
@@ -615,6 +720,8 @@ function construirHTML(
   .canal-foot .acc { width: 68%; height: 120px; font-weight: bold; }
   .canal-foot .par div { margin-bottom: 4px; }
   .canal-foot .par-title { font-weight: bold; }
+  .grafico-canal { margin-top: 16px; border: 1px solid #cbd5e1; padding: 8px; }
+  .grafico-titulo { text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 4px; }
   .pagina5 { page-break-before: always; }
   .almacen-img { margin-top: 18px; text-align: center; }
   .almacen-img img { max-width: 100%; max-height: 22cm; height: auto; }
@@ -624,7 +731,7 @@ function construirHTML(
   <p class="senores">SEÑORES</p>
   <p class="dest">${escaparHtml(cert.dirigidoA || 'CARNES SANTACRUZ')}</p>
   <p class="saludo">Respetados señores:</p>
-  <p class="parrafo">Adjunto a la presente estamos enviando la siguiente documentación, relacionada con el despacho de ${escaparHtml(cert.kilos || '8262.48')} canales despostadas.</p>
+  <p class="parrafo">Adjunto a la presente estamos enviando la siguiente documentación, relacionada con el despacho de ${escaparHtml(cert.kilos || '8262.48')} ${cert.tipoMedida === 'kilos' ? 'kilos despostados' : 'canales despostadas'}.</p>
   <ul class="lista">
     <li>Certificados de calidad</li>
     <li>Certificado de sacrificio</li>
@@ -657,7 +764,11 @@ function construirHTML(
   </div>
   <table class="tabla">
     <tr><th>TIENDA</th><th>LOTES</th><th>Kg DESPOSTADOS</th></tr>
-    <tr><td>${escaparHtml(cert.tienda)}</td><td>${escaparHtml(cert.lote)}</td><td>${escaparHtml(cert.kilos || '')}</td></tr>
+    <tr><td>${escaparHtml(
+      cert.puntosVenta && cert.puntosVenta.length
+        ? cert.puntosVenta.join(', ')
+        : cert.tienda,
+    )}</td><td>${escaparHtml(cert.lote)}</td><td>${escaparHtml(cert.kilos || '')}</td></tr>
   </table>
   <table class="tabla">
     <tr><th>CARACTERISTICA</th><th>PARAMETRO</th><th>RESULTADO</th></tr>
