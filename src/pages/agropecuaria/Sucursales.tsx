@@ -16,6 +16,7 @@ function formVacio(): Sucursal {
     nombre: '',
     empresa: 'CARNES SANTACRUZ',
     direccion: '',
+    ciudad: '',
     telefono: '',
   }
 }
@@ -52,6 +53,7 @@ export function Sucursales() {
           nombre,
           empresa: 'CARNES SANTACRUZ SAS',
           direccion: (p.direccion ?? '').trim(),
+          ciudad: '',
           telefono: (p.telefono ?? '').trim(),
         })
       }
@@ -80,6 +82,7 @@ export function Sucursales() {
         s.nombre.toLowerCase().includes(q) ||
         s.empresa.toLowerCase().includes(q) ||
         s.direccion.toLowerCase().includes(q) ||
+        (s.ciudad ?? '').toLowerCase().includes(q) ||
         s.telefono.toLowerCase().includes(q),
     )
   }, [sucursales, busqueda])
@@ -93,6 +96,7 @@ export function Sucursales() {
       nombre,
       empresa: form.empresa.trim().toUpperCase(),
       direccion: form.direccion.trim(),
+      ciudad: form.ciudad.trim(),
       telefono: form.telefono.trim(),
     }
     if (editando !== null) {
@@ -169,7 +173,7 @@ export function Sucursales() {
 
       <form
         onSubmit={guardar}
-        className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_1fr_10rem_auto] md:items-end"
+        className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_1fr_1fr_10rem_auto] md:items-end"
       >
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-slate-600">
@@ -200,6 +204,14 @@ export function Sucursales() {
             className={`${inputClase} uppercase`}
             value={form.direccion}
             onChange={(e) => setForm({ ...form, direccion: e.target.value })}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium text-slate-600">Ciudad</span>
+          <input
+            className={`${inputClase} uppercase`}
+            value={form.ciudad}
+            onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
           />
         </label>
         <label className="block text-sm">
@@ -253,6 +265,7 @@ export function Sucursales() {
                 <th className="px-4 py-2">Sucursal</th>
                 <th className="px-4 py-2">Firmador</th>
                 <th className="px-4 py-2">Direccion</th>
+                <th className="px-4 py-2">Ciudad</th>
                 <th className="px-4 py-2">Telefono</th>
                 <th className="px-4 py-2 text-right">Acciones</th>
               </tr>
@@ -261,7 +274,7 @@ export function Sucursales() {
               {filtrados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-6 text-center text-slate-400"
                   >
                     Sin resultados
@@ -278,6 +291,7 @@ export function Sucursales() {
                       )}
                     </td>
                     <td className="px-4 py-2 text-slate-500">{s.direccion}</td>
+                    <td className="px-4 py-2 text-slate-500">{s.ciudad}</td>
                     <td className="px-4 py-2 font-mono text-slate-500">
                       {s.telefono}
                     </td>

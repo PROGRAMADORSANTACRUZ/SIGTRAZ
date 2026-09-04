@@ -7,6 +7,7 @@ export interface Sucursal {
   nombre: string
   empresa: string
   direccion: string
+  ciudad: string
   telefono: string
 }
 
@@ -25,7 +26,11 @@ export function cargarSucursales(): Sucursal[] {
     const raw = localStorage.getItem(SUCURSALES_KEY)
     if (raw) {
       const lista = JSON.parse(raw) as Sucursal[]
-      return lista.map((s) => ({ ...s, empresa: s.empresa ?? '' }))
+      return lista.map((s) => ({
+        ...s,
+        empresa: s.empresa ?? '',
+        ciudad: s.ciudad ?? '',
+      }))
     }
   } catch {
     // datos corruptos: se ignora
