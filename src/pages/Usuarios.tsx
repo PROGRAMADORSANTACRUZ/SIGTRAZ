@@ -56,6 +56,7 @@ const formVacio = (): NuevoUsuario => ({
   email: '@sigtraz.com',
   rol: 'Administrador',
   empresa: undefined,
+  cargo: '',
   activo: true,
   password: '',
   puntosVenta: [],
@@ -163,6 +164,7 @@ export function Usuarios() {
       email: usuario.email,
       rol: usuario.rol,
       empresa: usuario.empresa,
+      cargo: usuario.cargo ?? '',
       activo: usuario.activo,
       password: '',
       puntosVenta: usuario.puntosVenta ?? [],
@@ -219,6 +221,7 @@ export function Usuarios() {
         email: form.email.trim(),
         rol: form.rol,
         empresa: form.empresa,
+        cargo: (form.cargo ?? '').trim(),
         activo: form.activo,
         password: form.password?.trim() || undefined,
         // Solo Carnes Santacruz asigna puntos de venta; el Administrador ve todos.
@@ -367,6 +370,15 @@ export function Usuarios() {
             <input
               value={form.apellido ?? ''}
               onChange={(e) => actualizar('apellido', e.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </Campo>
+
+          <Campo label="Cargo">
+            <input
+              value={form.cargo ?? ''}
+              onChange={(e) => actualizar('cargo', e.target.value)}
+              placeholder="Ej: Medico Veterinario"
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </Campo>

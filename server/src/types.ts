@@ -98,6 +98,7 @@ export interface Usuario {
   email: string
   rol: RolUsuario
   empresa?: EmpresaUsuario
+  cargo?: string
   activo: boolean
   fechaCreacion: string
   // Ids de los puntos de venta asignados (los Administradores ven todos).

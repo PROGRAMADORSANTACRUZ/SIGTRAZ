@@ -88,14 +88,16 @@ CREATE TABLE IF NOT EXISTS usuarios (
                                   'Medico Veterinario Porcino',
                                   'Consultor')),
     empresa        VARCHAR(60),
+    cargo          VARCHAR(120),
     activo         BOOLEAN      NOT NULL DEFAULT true,
     password_hash  VARCHAR(200),
     fecha_creacion TIMESTAMP    NOT NULL DEFAULT now()
 );
 
--- Migracion usuarios: nuevas columnas empresa/apellido y roles ampliados.
+-- Migracion usuarios: nuevas columnas empresa/apellido/cargo y roles ampliados.
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS apellido VARCHAR(120);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS empresa  VARCHAR(60);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo    VARCHAR(120);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS modulos  JSONB DEFAULT '[]';
 ALTER TABLE usuarios ALTER COLUMN rol TYPE VARCHAR(40);
 -- Se quita la restriccion antigua ANTES de convertir los roles, de lo

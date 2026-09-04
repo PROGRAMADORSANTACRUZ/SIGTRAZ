@@ -21,6 +21,7 @@ function mapUsuario(r: Record<string, unknown>): Usuario {
     email: r.email as string,
     rol: r.rol as RolUsuario,
     empresa: (r.empresa as EmpresaUsuario | null) ?? undefined,
+    cargo: (r.cargo as string | null) ?? undefined,
     activo: Boolean(r.activo),
     fechaCreacion: (r.fecha_creacion as Date).toISOString(),
     puntosVenta: Array.isArray(r.puntos_venta)
@@ -45,7 +46,7 @@ authRouter.post('/login', async (req, res, next) => {
     }
 
     const rows = await query(
-      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.activo, u.password_hash, u.fecha_creacion, u.modulos,
+      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.cargo, u.activo, u.password_hash, u.fecha_creacion, u.modulos,
               COALESCE(
                 ARRAY_AGG(upv.punto_venta_id)
                   FILTER (WHERE upv.punto_venta_id IS NOT NULL),
@@ -124,7 +125,7 @@ authRouter.get('/estado', async (req, res, next) => {
 authRouter.get('/me', requireAuth, async (req, res, next) => {
   try {
     const rows = await query(
-      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.activo, u.fecha_creacion, u.modulos,
+      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.cargo, u.activo, u.fecha_creacion, u.modulos,
               COALESCE(
                 ARRAY_AGG(upv.punto_venta_id)
                   FILTER (WHERE upv.punto_venta_id IS NOT NULL),

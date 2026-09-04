@@ -22,6 +22,7 @@ function mapUsuario(r: Record<string, unknown>): Usuario {
     email: r.email as string,
     rol: r.rol as RolUsuario,
     empresa: (r.empresa as EmpresaUsuario | null) ?? undefined,
+    cargo: (r.cargo as string | null) ?? undefined,
     activo: Boolean(r.activo),
     fechaCreacion: (r.fecha_creacion as Date).toISOString(),
     puntosVenta: Array.isArray(r.puntos_venta)
@@ -95,7 +96,7 @@ function validar(body: Partial<NuevoUsuario>): string[] {
 usuariosRouter.get('/', async (_req, res, next) => {
   try {
     const rows = await query(
-      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.activo, u.fecha_creacion, u.modulos,
+      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.cargo, u.activo, u.fecha_creacion, u.modulos,
               COALESCE(
                 ARRAY_AGG(upv.punto_venta_id)
                   FILTER (WHERE upv.punto_venta_id IS NOT NULL),
@@ -136,15 +137,16 @@ usuariosRouter.post('/', async (req, res, next) => {
     const passwordHash = await hashPassword(body.password!)
 
     const rows = await query(
-      `INSERT INTO usuarios (nombre, apellido, email, rol, empresa, activo, password_hash, modulos)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
-       RETURNING id, nombre, apellido, email, rol, empresa, activo, fecha_creacion, modulos`,
+      `INSERT INTO usuarios (nombre, apellido, email, rol, empresa, cargo, activo, password_hash, modulos)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+       RETURNING id, nombre, apellido, email, rol, empresa, cargo, activo, fecha_creacion, modulos`,
       [
         body.nombre!.trim(),
         body.apellido!.trim(),
         body.email!.trim(),
         body.rol!,
         body.empresa!,
+        body.cargo?.trim() || null,
         body.activo ?? true,
         passwordHash,
         JSON.stringify(normalizarModulos(body.modulos)),
@@ -201,11 +203,11 @@ usuariosRouter.put('/:id', async (req, res, next) => {
     const rows = await query(
       `UPDATE usuarios
           SET nombre = $2, apellido = $3, email = $4, rol = $5, empresa = $6,
-              activo = $7,
-              password_hash = COALESCE($8, password_hash),
-              modulos = $9::jsonb
+              cargo = $7, activo = $8,
+              password_hash = COALESCE($9, password_hash),
+              modulos = $10::jsonb
         WHERE id = $1
-      RETURNING id, nombre, apellido, email, rol, empresa, activo, fecha_creacion, modulos`,
+      RETURNING id, nombre, apellido, email, rol, empresa, cargo, activo, fecha_creacion, modulos`,
       [
         id,
         body.nombre!.trim(),
@@ -213,6 +215,7 @@ usuariosRouter.put('/:id', async (req, res, next) => {
         body.email!.trim(),
         body.rol!,
         body.empresa!,
+        body.cargo?.trim() || null,
         body.activo ?? true,
         passwordHash,
         JSON.stringify(normalizarModulos(body.modulos)),
@@ -259,7 +262,7 @@ usuariosRouter.patch('/:id/estado', async (req, res, next) => {
       `UPDATE usuarios
           SET activo = $2
         WHERE id = $1
-      RETURNING id, nombre, apellido, email, rol, empresa, activo, fecha_creacion, modulos`,
+      RETURNING id, nombre, apellido, email, rol, empresa, cargo, activo, fecha_creacion, modulos`,
       [id, activo],
     )
 
