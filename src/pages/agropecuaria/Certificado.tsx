@@ -730,28 +730,38 @@ export function Certificado() {
     return true
   })
 
-  // Curvas de temperatura FINALIZADAS del firmador elegido en el paso 1.
+  // Curvas de temperatura FINALIZADAS de la sucursal elegida en el paso 1.
   const curvasCliente = form.dirigidoA
     ? curvas.filter(
-        (o) => (o.firmador || '') === form.dirigidoA && o.finalizado,
+        (o) => (o.sucursal || '') === form.dirigidoA && o.finalizado,
       )
     : []
 
-  // Solo los firmadores que tienen al menos una curva de temperatura
+  // Solo las sucursales que tienen al menos una curva de temperatura
   // finalizada pueden elegirse en el paso 1.
-  const firmadoresConCurva = Array.from(
+  const sucursalesConCurva = Array.from(
     new Set(
       curvas
-        .filter((o) => o.finalizado && (o.firmador || '').trim())
-        .map((o) => (o.firmador || '').trim()),
+        .filter((o) => o.finalizado && (o.sucursal || '').trim())
+        .map((o) => (o.sucursal || '').trim()),
     ),
   )
 
-  // Lotes de Ante Mortem del cliente (firmador) seleccionado, sin importar la
+  // Firmador asociado a la sucursal elegida (segun su curva de temperatura).
+  // Con el se traen los lotes de Ante Mortem.
+  const firmadorActivo = form.dirigidoA
+    ? (
+        curvas.find(
+          (o) => (o.sucursal || '') === form.dirigidoA && o.finalizado,
+        )?.firmador || ''
+      ).trim()
+    : ''
+
+  // Lotes de Ante Mortem del firmador ligado a la sucursal, sin importar la
   // fecha. Se excluyen los lotes que ya tienen certificado creado y los que ya
   // se agregaron a este certificado.
   const lotesDelDia = (() => {
-    if (!form.dirigidoA) return []
+    if (!firmadorActivo) return []
     try {
       const lista = JSON.parse(
         localStorage.getItem('agro_antemortem') || '[]',
@@ -769,7 +779,7 @@ export function Certificado() {
       return Array.from(
         new Set(
           lista
-            .filter((r) => (r.firmador || '') === form.dirigidoA)
+            .filter((r) => (r.firmador || '') === firmadorActivo)
             .map((r) => String(r.loteSacrificio || '').trim())
             .filter(
               (v) =>
@@ -1073,7 +1083,7 @@ export function Certificado() {
     const membrete = await cargarMembrete()
     const logo = await cargarImagen('/logos/agropecuaria-santacruz.png')
     const curvasCert = cargarCurvas().filter(
-      (o) => (o.firmador || '') === (cert.dirigidoA || '') && o.finalizado,
+      (o) => (o.sucursal || '') === (cert.dirigidoA || '') && o.finalizado,
     )
     const win = window.open('', '_blank')
     if (!win) return
@@ -1086,7 +1096,7 @@ export function Certificado() {
 
   async function exportarWord(cert: Certificado) {
     const curvasCert = cargarCurvas().filter(
-      (o) => (o.firmador || '') === (cert.dirigidoA || '') && o.finalizado,
+      (o) => (o.sucursal || '') === (cert.dirigidoA || '') && o.finalizado,
     )
     // 1) Intenta rellenar la plantilla Word con marca de agua real.
     try {
@@ -1241,10 +1251,10 @@ export function Certificado() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">
-                  Firmador
+                  Sucursal
                 </span>
                 <SelectorBuscable
-                  opciones={firmadoresConCurva}
+                  opciones={sucursalesConCurva}
                   value={form.dirigidoA}
                   onChange={(v) =>
                     setForm((prev) => ({
@@ -1254,8 +1264,8 @@ export function Certificado() {
                       sucursal: v,
                     }))
                   }
-                  placeholder="Seleccione un firmador..."
-                  buscarPlaceholder="Buscar firmador..."
+                  placeholder="Seleccione una sucursal..."
+                  buscarPlaceholder="Buscar sucursal..."
                 />
               </label>
               <label className="block">
@@ -1620,11 +1630,11 @@ export function Certificado() {
               ) : i === 2 ? (
                 !form.dirigidoA ? (
                   <p className="text-sm text-slate-400">
-                    Selecciona el firmador en el paso 1 para ver las curvas.
+                    Selecciona la sucursal en el paso 1 para ver las curvas.
                   </p>
                 ) : curvasCliente.length === 0 ? (
                   <p className="text-sm text-slate-400">
-                    No hay curvas finalizadas para el firmador {form.dirigidoA}.
+                    No hay curvas finalizadas para la sucursal {form.dirigidoA}.
                   </p>
                 ) : (
                   <div className="space-y-4">
