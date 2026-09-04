@@ -3,7 +3,6 @@ import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
-import { cargarFirmantes, cargarSucursales } from './sucursalesStore'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
 import { ModalEliminar } from '../../components/ModalEliminar'
 import { api } from '../../services/api'
@@ -70,6 +69,7 @@ interface OrdenCurva {
   consecutivo: string
   fecha: string
   cliente: string
+  firmador?: string
   lote: string
   cuartoFrio: string
   numeroGuia: string
@@ -695,8 +695,6 @@ export function Certificado() {
   const [form, setForm] = useState(formVacio)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [sucursalOriginal, setSucursalOriginal] = useState('')
-  const [firmantes] = useState(cargarFirmantes)
-  const [sucursales] = useState(cargarSucursales)
   const [curvas, setCurvas] = useState<OrdenCurva[]>(cargarCurvas)
   // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
   const [filtroMes, setFiltroMes] = useState(() =>
@@ -732,32 +730,22 @@ export function Certificado() {
     return true
   })
 
-  // Curvas de temperatura FINALIZADAS de la sucursal elegida en el paso 1.
+  // Curvas de temperatura FINALIZADAS del firmador elegido en el paso 1.
   const curvasCliente = form.dirigidoA
     ? curvas.filter(
-        (o) => (o.sucursal || '') === form.dirigidoA && o.finalizado,
+        (o) => (o.firmador || '') === form.dirigidoA && o.finalizado,
       )
     : []
 
-  // Solo las sucursales que tienen al menos una curva de temperatura
+  // Solo los firmadores que tienen al menos una curva de temperatura
   // finalizada pueden elegirse en el paso 1.
-  const sucursalesConCurva = Array.from(
+  const firmadoresConCurva = Array.from(
     new Set(
       curvas
-        .filter((o) => o.finalizado && (o.sucursal || '').trim())
-        .map((o) => (o.sucursal || '').trim()),
+        .filter((o) => o.finalizado && (o.firmador || '').trim())
+        .map((o) => (o.firmador || '').trim()),
     ),
   )
-
-  // Sucursales hijas de la principal elegida en el paso 1: permiten emitir un
-  // certificado por cada una (Malambo, Concord, etc.). Si no tiene hijas, se
-  // ofrecen todas las sucursales.
-  const hijasPrincipal = sucursales
-    .filter((s) => (s.principal || '') === (form.dirigidoA || '').trim())
-    .map((s) => s.nombre)
-  const opcionesSucursalDestino = hijasPrincipal.length
-    ? hijasPrincipal
-    : sucursales.map((s) => s.nombre)
 
   // Lotes de Ante Mortem del cliente (firmador) seleccionado, sin importar la
   // fecha. Se excluyen los lotes que ya tienen certificado creado y los que ya
@@ -957,14 +945,17 @@ export function Certificado() {
   function abrirNuevo() {
     const ahora = new Date()
     setCurvas(cargarCurvas())
+    const firma =
+      [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() ||
+      usuario?.email ||
+      ''
     setForm({
       ...formVacio(),
       numero: siguienteNumero(certificados),
       fecha: ahora.toLocaleDateString('en-CA'),
-      digitadoPor:
-        [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() ||
-        usuario?.email ||
-        '',
+      digitadoPor: firma,
+      firmante: firma,
+      cargo: usuario?.cargo || '',
       curvaFecha: ahora.toLocaleDateString('en-CA'),
       curvaHora: ahora.toTimeString().slice(0, 5),
     })
@@ -1082,7 +1073,7 @@ export function Certificado() {
     const membrete = await cargarMembrete()
     const logo = await cargarImagen('/logos/agropecuaria-santacruz.png')
     const curvasCert = cargarCurvas().filter(
-      (o) => (o.sucursal || '') === (cert.dirigidoA || '') && o.finalizado,
+      (o) => (o.firmador || '') === (cert.dirigidoA || '') && o.finalizado,
     )
     const win = window.open('', '_blank')
     if (!win) return
@@ -1095,7 +1086,7 @@ export function Certificado() {
 
   async function exportarWord(cert: Certificado) {
     const curvasCert = cargarCurvas().filter(
-      (o) => (o.sucursal || '') === (cert.dirigidoA || '') && o.finalizado,
+      (o) => (o.firmador || '') === (cert.dirigidoA || '') && o.finalizado,
     )
     // 1) Intenta rellenar la plantilla Word con marca de agua real.
     try {
@@ -1250,14 +1241,21 @@ export function Certificado() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">
-                  Sucursal
+                  Firmador
                 </span>
                 <SelectorBuscable
-                  opciones={sucursalesConCurva}
+                  opciones={firmadoresConCurva}
                   value={form.dirigidoA}
-                  onChange={(v) => actualizar('dirigidoA', v)}
-                  placeholder="Seleccione una sucursal..."
-                  buscarPlaceholder="Buscar sucursal..."
+                  onChange={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      dirigidoA: v,
+                      tienda: v,
+                      sucursal: v,
+                    }))
+                  }
+                  placeholder="Seleccione un firmador..."
+                  buscarPlaceholder="Buscar firmador..."
                 />
               </label>
               <label className="block">
@@ -1332,25 +1330,16 @@ export function Certificado() {
                 />
               </label>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">
                   Firmante
                 </span>
-                <SelectorBuscable
-                  opciones={firmantes.map((f) => f.nombre)}
+                <input
+                  readOnly
+                  data-no-upper
+                  className="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600 focus:outline-none"
                   value={form.firmante}
-                  onChange={(v) => {
-                    const f = firmantes.find((x) => x.nombre === v)
-                    setForm((prev) => ({
-                      ...prev,
-                      firmante: v,
-                      cargo: f ? f.cargo : prev.cargo,
-                    }))
-                  }}
-                  permitirLibre
-                  placeholder="Selecciona firmante..."
-                  buscarPlaceholder="Buscar firmante..."
                 />
               </label>
               <label className="block">
@@ -1358,28 +1347,10 @@ export function Certificado() {
                   Cargo
                 </span>
                 <input
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  readOnly
+                  data-no-upper
+                  className="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600 focus:outline-none"
                   value={form.cargo}
-                  onChange={(e) => actualizar('cargo', e.target.value)}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-700">
-                  Sucursal
-                </span>
-                <SelectorBuscable
-                  opciones={opcionesSucursalDestino}
-                  value={form.sucursal}
-                  onChange={(v) =>
-                    setForm((prev) => ({ ...prev, sucursal: v, tienda: v }))
-                  }
-                  permitirLibre
-                  placeholder={
-                    hijasPrincipal.length
-                      ? 'Selecciona la sucursal (hija)...'
-                      : 'Selecciona sucursal...'
-                  }
-                  buscarPlaceholder="Buscar sucursal..."
                 />
               </label>
             </div>
@@ -1649,11 +1620,11 @@ export function Certificado() {
               ) : i === 2 ? (
                 !form.dirigidoA ? (
                   <p className="text-sm text-slate-400">
-                    Selecciona la sucursal en el paso 1 para ver las curvas.
+                    Selecciona el firmador en el paso 1 para ver las curvas.
                   </p>
                 ) : curvasCliente.length === 0 ? (
                   <p className="text-sm text-slate-400">
-                    No hay curvas finalizadas para la sucursal {form.dirigidoA}.
+                    No hay curvas finalizadas para el firmador {form.dirigidoA}.
                   </p>
                 ) : (
                   <div className="space-y-4">
