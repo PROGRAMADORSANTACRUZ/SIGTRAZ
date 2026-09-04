@@ -1,0 +1,18 @@
+
+> sigtraz@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 490 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m    0.83 kB[22m[1m[22m[2m │ gzip:   0.46 kB[22m
+[2mdist/[22m[35massets/index-yFGHgpqB.css  [39m[1m[2m   43.98 kB[22m[1m[22m[2m │ gzip:   8.07 kB[22m
+[2mdist/[22m[36massets/index-BaAGnXCJ.js   [39m[1m[33m3,087.11 kB[39m[22m[2m │ gzip: 821.72 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 11.14s[39m

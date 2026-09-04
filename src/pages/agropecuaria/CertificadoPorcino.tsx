@@ -1440,12 +1440,12 @@ export function CertificadoPorcino() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-sm font-medium text-slate-700">
-                        Tienda <span className="text-rose-500">*</span>
+                        Firmador <span className="text-rose-500">*</span>
                       </span>
                       <input
                         readOnly
                         className="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600 focus:outline-none"
-                        value={form.tienda}
+                        value={firmadorActivo}
                         placeholder="Selecciona la sucursal (paso 1)"
                       />
                     </label>
