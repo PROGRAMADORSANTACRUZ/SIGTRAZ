@@ -55,6 +55,7 @@ interface LecturaCurva {
   tcCanal: string
   tcCuarto: string
   hp: string
+  verificado?: string
 }
 
 interface CanalCurva {
@@ -100,7 +101,7 @@ function filasCurva(o: OrdenCurva): FilaCurva[] {
           canal: c.numero || '',
           tcCanal: l.tcCanal || '',
           tcCuarto: l.tcCuarto || '',
-          verificado: c.verificado || '',
+          verificado: l.verificado || c.verificado || '',
         }),
       ),
     )

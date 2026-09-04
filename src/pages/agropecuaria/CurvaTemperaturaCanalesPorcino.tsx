@@ -52,6 +52,7 @@ interface Lectura {
   tcCanal: string
   tcCuarto: string
   hp: string
+  verificado: string
 }
 
 interface Canal {
@@ -80,25 +81,38 @@ interface Orden {
   finalizado?: boolean
 }
 
-const lecturaVacia = (): Lectura => ({
+const lecturaVacia = (verificado = ''): Lectura => ({
   id: crypto.randomUUID(),
   fecha: new Date().toLocaleDateString('en-CA'),
   hora: new Date().toTimeString().slice(0, 5),
   tcCanal: '',
   tcCuarto: '',
   hp: '',
+  verificado,
 })
 
 const canalVacio = (verificado = ''): Canal => ({
   id: crypto.randomUUID(),
   numero: '',
   verificado,
-  lecturas: [lecturaVacia()],
+  lecturas: [lecturaVacia(verificado)],
 })
 
 // Convierte registros con la estructura antigua (mediciones) a canales.
 function migrarOrden(o: Orden): Orden {
-  if (Array.isArray(o.canales) && o.canales.length) return o
+  if (Array.isArray(o.canales) && o.canales.length) {
+    // Rellena el verificado por lectura en registros previos (estaba por canal).
+    return {
+      ...o,
+      canales: o.canales.map((c) => ({
+        ...c,
+        lecturas: (c.lecturas || []).map((l) => ({
+          ...l,
+          verificado: l.verificado ?? c.verificado ?? '',
+        })),
+      })),
+    }
+  }
   const meds = Array.isArray(o.mediciones) ? o.mediciones : []
   const porNumero = new Map<string, Canal>()
   const canales: Canal[] = []
@@ -122,6 +136,7 @@ function migrarOrden(o: Orden): Orden {
       tcCanal: m.tcCanal || '',
       tcCuarto: m.tcCuarto || '',
       hp: m.hp || '',
+      verificado: m.verificado || '',
     })
   }
   return { ...o, canales: canales.length ? canales : [canalVacio()] }
@@ -197,6 +212,10 @@ export function CurvaTemperaturaCanalesPorcino() {
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const [error, setError] = useState('')
+  // Ids de lecturas ya guardadas: no se pueden editar salvo el Administrador.
+  const [lecturasGuardadas, setLecturasGuardadas] = useState<Set<string>>(
+    () => new Set(),
+  )
   const { usuario } = useAuth()
   const esAdmin = usuario?.rol === 'Administrador'
   const firmaUsuario =
@@ -339,7 +358,7 @@ export function CurvaTemperaturaCanalesPorcino() {
       ...prev,
       canales: prev.canales.map((c) =>
         c.id === idCanal
-          ? { ...c, lecturas: [...c.lecturas, lecturaVacia()] }
+          ? { ...c, lecturas: [...c.lecturas, lecturaVacia(firmaUsuario)] }
           : c,
       ),
     }))
@@ -360,6 +379,7 @@ export function CurvaTemperaturaCanalesPorcino() {
     const ahora = new Date()
     setAnteMortem(cargarAnteMortem())
     setError('')
+    setLecturasGuardadas(new Set())
     setForm({
       ...formVacio(firmaUsuario),
       consecutivo: siguienteConsecutivo(ordenes),
@@ -373,10 +393,17 @@ export function CurvaTemperaturaCanalesPorcino() {
     setAnteMortem(cargarAnteMortem())
     setError('')
     const { id: _id, ...datos } = migrarOrden(o)
+    const canales = datos.canales?.length
+      ? datos.canales
+      : [canalVacio(firmaUsuario)]
+    // Las lecturas ya guardadas quedan bloqueadas para usuarios no admin.
+    setLecturasGuardadas(
+      new Set(canales.flatMap((c) => c.lecturas.map((l) => l.id))),
+    )
     setForm({
       ...formVacio(firmaUsuario),
       ...datos,
-      canales: datos.canales?.length ? datos.canales : [canalVacio(firmaUsuario)],
+      canales,
     })
     setEditandoId(o.id)
     setMostrarForm(true)
@@ -402,7 +429,6 @@ export function CurvaTemperaturaCanalesPorcino() {
       const c = form.canales[i]
       const n = i + 1
       if (!c.numero.trim()) return `Canal #${n}: ingresa el número de canal.`
-      if (!c.verificado.trim()) return `Canal #${n}: ingresa Verificado por.`
       for (let j = 0; j < c.lecturas.length; j++) {
         const l = c.lecturas[j]
         const etq = `Canal ${c.numero || n}, lectura #${j + 1}`
@@ -410,6 +436,8 @@ export function CurvaTemperaturaCanalesPorcino() {
         if (!l.hora.trim()) return `${etq}: ingresa la hora.`
         if (!l.tcCanal.trim()) return `${etq}: ingresa T°C canal.`
         if (!l.tcCuarto.trim()) return `${etq}: ingresa T°C cuarto.`
+        if (!(l.verificado || '').trim())
+          return `${etq}: ingresa Verificado por.`
       }
     }
     return ''
@@ -615,6 +643,14 @@ export function CurvaTemperaturaCanalesPorcino() {
                     {c.lecturas.map((l, li) => {
                       const caliente = li === 0
                       const bloqueado = !c.numero.trim()
+                      // Una lectura ya guardada solo la puede editar el admin.
+                      const soloLectura =
+                        !esAdmin && lecturasGuardadas.has(l.id)
+                      const tituloTemp = bloqueado
+                        ? 'Ingresa el número de canal'
+                        : soloLectura
+                          ? 'Solo el administrador puede editar una lectura guardada'
+                          : undefined
                       return (
                         <div
                           key={l.id}
@@ -663,8 +699,8 @@ export function CurvaTemperaturaCanalesPorcino() {
                               <input
                                 inputMode="decimal"
                                 data-no-upper
-                                disabled={bloqueado}
-                                title={bloqueado ? 'Ingresa el número de canal' : undefined}
+                                disabled={bloqueado || soloLectura}
+                                title={tituloTemp}
                                 className={`${inputBase} min-w-0 flex-1 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
                                 value={l.tcCanal}
                                 onChange={(e) =>
@@ -679,8 +715,8 @@ export function CurvaTemperaturaCanalesPorcino() {
                               <input
                                 inputMode="decimal"
                                 data-no-upper
-                                disabled={bloqueado}
-                                title={bloqueado ? 'Ingresa el número de canal' : undefined}
+                                disabled={bloqueado || soloLectura}
+                                title={tituloTemp}
                                 className={`${inputBase} min-w-0 flex-1 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
                                 value={l.tcCuarto}
                                 onChange={(e) =>
@@ -695,8 +731,8 @@ export function CurvaTemperaturaCanalesPorcino() {
                               <input
                                 inputMode="decimal"
                                 data-no-upper
-                                disabled={bloqueado}
-                                title={bloqueado ? 'Ingresa el número de canal' : undefined}
+                                disabled={bloqueado || soloLectura}
+                                title={tituloTemp}
                                 className={`${inputBase} min-w-0 flex-1 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
                                 value={l.hp}
                                 onChange={(e) =>
@@ -704,10 +740,28 @@ export function CurvaTemperaturaCanalesPorcino() {
                                 }
                               />
                             </label>
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-medium text-slate-500">
+                                Verificado por
+                              </span>
+                              <input
+                                disabled={soloLectura}
+                                title={
+                                  soloLectura
+                                    ? 'Solo el administrador puede editar una lectura guardada'
+                                    : undefined
+                                }
+                                className={`${inputBase} px-2 py-1 text-xs disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                value={l.verificado || ''}
+                                onChange={(e) =>
+                                  actualizarLectura(c.id, l.id, 'verificado', e.target.value)
+                                }
+                              />
+                            </label>
                             <button
                               type="button"
                               onClick={() => quitarLectura(c.id, l.id)}
-                              disabled={c.lecturas.length === 1}
+                              disabled={c.lecturas.length === 1 || soloLectura}
                               className="w-full rounded-md border border-rose-200 bg-rose-50 py-1 text-xs font-medium text-rose-600 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               Quitar
@@ -724,16 +778,6 @@ export function CurvaTemperaturaCanalesPorcino() {
                       + Lectura
                     </button>
                   </div>
-                  <label className="block max-w-xs">
-                    <span className="mb-1 block text-xs font-medium text-slate-600">
-                      Verificado por <span className="text-rose-500">*</span>
-                    </span>
-                    <input
-                      className={inputBase}
-                      value={c.verificado}
-                      onChange={(e) => actualizarCanal(c.id, 'verificado', e.target.value)}
-                    />
-                  </label>
                 </div>
               ))}
               <button
