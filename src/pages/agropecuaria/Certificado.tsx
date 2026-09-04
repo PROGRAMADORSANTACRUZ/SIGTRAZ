@@ -12,6 +12,7 @@ import {
   departamentosSeed,
 } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
+import { cargarSucursales } from './sucursalesStore'
 
 const STORAGE_KEY = 'agro_certificados'
 const CURVA_KEY = 'agro_curva_canales'
@@ -700,6 +701,7 @@ export function Certificado() {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [sucursalOriginal, setSucursalOriginal] = useState('')
   const [curvas, setCurvas] = useState<OrdenCurva[]>(cargarCurvas)
+  const [sucursalesCat] = useState(cargarSucursales)
   // Por defecto se muestra el mes actual; Desde/Hasta vacios para ver todo el mes.
   const [filtroMes, setFiltroMes] = useState(() =>
     new Date().toLocaleDateString('en-CA').slice(0, 7),
@@ -765,6 +767,17 @@ export function Certificado() {
             .map((o) => (o.firmador || '').trim()),
         ),
       )
+    : []
+
+  // Sucursales asociadas al principal elegido en el paso 1. Se muestran como
+  // opciones en "Puntos de ventas".
+  const puntosVentaOpciones = form.dirigidoA
+    ? sucursalesCat
+        .filter(
+          (s) => (s.principal || '').trim() === form.dirigidoA.trim(),
+        )
+        .map((s) => s.nombre)
+        .filter((n) => n && !form.puntosVenta.includes(n))
     : []
 
   // Lotes que tienen curva de temperatura finalizada para la sucursal y el
@@ -1355,7 +1368,7 @@ export function Certificado() {
                       form.tipoMedida === 'unidades' ? 'kilos' : 'unidades',
                     )
                   }
-                  className={`mb-1 inline-block self-start rounded-md px-3 py-0.5 text-sm font-semibold text-white ${
+                  className={`mb-1 inline-flex h-5 items-center self-start rounded-md px-3 text-sm font-semibold text-white ${
                     form.tipoMedida === 'unidades' ? 'bg-blue-600' : 'bg-red-600'
                   }`}
                 >
@@ -1411,12 +1424,15 @@ export function Certificado() {
                   Puntos de ventas
                 </span>
                 <SelectorBuscable
-                  opciones={[]}
+                  opciones={puntosVentaOpciones}
                   value=""
                   onChange={(v) => agregarPuntoVenta(v)}
-                  permitirLibre
-                  placeholder="Escribe y agrega"
-                  buscarPlaceholder="Escribe el punto de venta..."
+                  placeholder={
+                    form.dirigidoA
+                      ? 'Selecciona un punto de venta...'
+                      : 'Primero elige la sucursal'
+                  }
+                  buscarPlaceholder="Buscar punto de venta..."
                 />
                 {form.puntosVenta.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
