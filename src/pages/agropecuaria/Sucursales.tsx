@@ -19,6 +19,7 @@ function formVacio(): Sucursal {
     direccion: '',
     ciudad: '',
     telefono: '',
+    principal: '',
   }
 }
 
@@ -95,6 +96,7 @@ export function Sucursales() {
         s.empresa.toLowerCase().includes(q) ||
         s.direccion.toLowerCase().includes(q) ||
         (s.ciudad ?? '').toLowerCase().includes(q) ||
+        (s.principal ?? '').toLowerCase().includes(q) ||
         s.telefono.toLowerCase().includes(q),
     )
   }, [sucursales, busqueda])
@@ -110,6 +112,7 @@ export function Sucursales() {
       direccion: form.direccion.trim(),
       ciudad: form.ciudad.trim(),
       telefono: form.telefono.trim(),
+      principal: (form.principal || '').trim().toUpperCase(),
     }
     if (editando !== null) {
       persistir(sucursales.map((s) => (s.id === editando ? registro : s)))
@@ -185,7 +188,7 @@ export function Sucursales() {
 
       <form
         onSubmit={guardar}
-        className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_1fr_1fr_10rem_auto] md:items-end"
+        className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_1fr_1fr_1fr_10rem_auto] md:items-end"
       >
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-slate-600">
@@ -207,6 +210,26 @@ export function Sucursales() {
             placeholder="Selecciona firmador..."
             buscarPlaceholder="Buscar firmador..."
           />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium text-slate-600">
+            Principal
+          </span>
+          <select
+            className={inputClase}
+            data-no-upper
+            value={form.principal || ''}
+            onChange={(e) => setForm({ ...form, principal: e.target.value })}
+          >
+            <option value="">— Es principal —</option>
+            {sucursales
+              .filter((x) => x.nombre && x.nombre !== form.nombre)
+              .map((x) => (
+                <option key={x.id} value={x.nombre}>
+                  {x.nombre}
+                </option>
+              ))}
+          </select>
         </label>
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-slate-600">
@@ -276,6 +299,7 @@ export function Sucursales() {
                 <th className="px-4 py-2">No.</th>
                 <th className="px-4 py-2">Sucursal</th>
                 <th className="px-4 py-2">Firmador</th>
+                <th className="px-4 py-2">Principal</th>
                 <th className="px-4 py-2">Direccion</th>
                 <th className="px-4 py-2">Ciudad</th>
                 <th className="px-4 py-2">Telefono</th>
@@ -286,7 +310,7 @@ export function Sucursales() {
               {filtrados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-6 text-center text-slate-400"
                   >
                     Sin resultados
@@ -300,6 +324,11 @@ export function Sucursales() {
                     <td className="px-4 py-2 text-slate-500">
                       {s.empresa || (
                         <span className="text-slate-300">Sin firmador</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-slate-500">
+                      {s.principal || (
+                        <span className="text-slate-300">Principal</span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-slate-500">{s.direccion}</td>

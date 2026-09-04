@@ -9,6 +9,8 @@ export interface Sucursal {
   direccion: string
   ciudad: string
   telefono: string
+  // Nombre de la sucursal principal a la que pertenece (vacío si es principal).
+  principal?: string
 }
 
 export interface Firmante {
@@ -30,6 +32,7 @@ export function cargarSucursales(): Sucursal[] {
         ...s,
         empresa: s.empresa ?? '',
         ciudad: s.ciudad ?? '',
+        principal: s.principal ?? '',
       }))
     }
   } catch {

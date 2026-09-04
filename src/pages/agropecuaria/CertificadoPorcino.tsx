@@ -748,6 +748,15 @@ export function CertificadoPorcino() {
     ),
   )
 
+  // Sucursales hijas de la principal elegida en el paso 1: permiten emitir un
+  // certificado por cada una. Si no tiene hijas, se ofrecen todas.
+  const hijasPrincipal = sucursales
+    .filter((s) => (s.principal || '') === (form.dirigidoA || '').trim())
+    .map((s) => s.nombre)
+  const opcionesSucursalDestino = hijasPrincipal.length
+    ? hijasPrincipal
+    : sucursales.map((s) => s.nombre)
+
   // Lotes de Ante Mortem del cliente (firmador) seleccionado, sin importar la
   // fecha. Se excluyen los lotes que ya tienen certificado creado y los que ya
   // se agregaron a este certificado.
@@ -1357,13 +1366,17 @@ export function CertificadoPorcino() {
                   Sucursal
                 </span>
                 <SelectorBuscable
-                  opciones={sucursales.map((s) => s.nombre)}
+                  opciones={opcionesSucursalDestino}
                   value={form.sucursal}
                   onChange={(v) =>
                     setForm((prev) => ({ ...prev, sucursal: v, tienda: v }))
                   }
                   permitirLibre
-                  placeholder="Selecciona sucursal..."
+                  placeholder={
+                    hijasPrincipal.length
+                      ? 'Selecciona la sucursal (hija)...'
+                      : 'Selecciona sucursal...'
+                  }
                   buscarPlaceholder="Buscar sucursal..."
                 />
               </label>
