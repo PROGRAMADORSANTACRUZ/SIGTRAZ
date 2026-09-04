@@ -239,10 +239,12 @@ export function CurvaTemperaturaCanalesPorcino() {
     return true
   })
 
-  // Firmadores registrados en Ante Mortem (la fecha es irrelevante).
+  // Firmadores que ingresaron en Ante Mortem HOY (no de dias anteriores).
+  const hoy = new Date().toLocaleDateString('en-CA')
   const firmadoresDelDia = Array.from(
     new Set(
       anteMortem
+        .filter((r) => r.fechaIngreso === hoy)
         .map((r) => r.firmador)
         .filter(Boolean),
     ),
