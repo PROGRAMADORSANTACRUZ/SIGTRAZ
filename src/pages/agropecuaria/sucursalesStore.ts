@@ -143,8 +143,28 @@ export function asegurarBaseOlimpica(actual: Sucursal[]): {
 
 // Principal de Carnes Santacruz y sus sucursales hijas. Se versiona en codigo
 // para que el Certificado de calidad muestre las hijas al elegir la principal.
-// El nombre conserva la grafia usada en las curvas ("PRINCIAL").
-export const PRINCIPAL_CARNES = 'PRINCIAL CARNES SANTACRUZ'
+export const PRINCIPAL_CARNES = 'PRINCIPAL CARNES SANTACRUZ'
+
+// Grafia antigua (con error de tipeo) que quedo guardada en datos y curvas.
+const PRINCIPAL_CARNES_ANTIGUO = 'PRINCIAL CARNES SANTACRUZ'
+
+// Reemplaza la grafia antigua "PRINCIAL" por "PRINCIPAL" en todos los datos de
+// Agropecuaria ya guardados (sucursales, curvas, certificados, etc.). Es
+// idempotente: solo reescribe las claves que realmente cambian. Como corre
+// despues de precargarAgro y agroSync ya esta instalado, la correccion tambien
+// se envia al servidor.
+export function corregirGrafiaPrincipal(): number {
+  let corregidas = 0
+  for (let i = 0; i < localStorage.length; i++) {
+    const clave = localStorage.key(i)
+    if (!clave || !clave.startsWith('agro_')) continue
+    const valor = localStorage.getItem(clave)
+    if (!valor || !valor.includes(PRINCIPAL_CARNES_ANTIGUO)) continue
+    localStorage.setItem(clave, valor.split(PRINCIPAL_CARNES_ANTIGUO).join(PRINCIPAL_CARNES))
+    corregidas++
+  }
+  return corregidas
+}
 
 const HIJAS_CARNES: string[] = [
   'CARNES SANTACRUZ ALAMEDA 1',
