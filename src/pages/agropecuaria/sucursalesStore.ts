@@ -141,6 +141,74 @@ export function asegurarBaseOlimpica(actual: Sucursal[]): {
   return { lista, agregadas: faltantes.length }
 }
 
+// Principal de Carnes Santacruz y sus sucursales hijas. Se versiona en codigo
+// para que el Certificado de calidad muestre las hijas al elegir la principal.
+// El nombre conserva la grafia usada en las curvas ("PRINCIAL").
+export const PRINCIPAL_CARNES = 'PRINCIAL CARNES SANTACRUZ'
+
+const HIJAS_CARNES: string[] = [
+  'CARNES SANTACRUZ ALAMEDA 1',
+  'CARNES SANTACRUZ ALAMEDA 2',
+  'CARNES SANTACRUZ BUCARAMANGA',
+  'CARNES SANTACRUZ CARTAGENA',
+  'CARNES SANTACRUZ CENTRO',
+  'CARNES SANTACRUZ CONCORD',
+  'CARNES SANTACRUZ LA 43',
+  'CARNES SANTACRUZ LA 70',
+  'CARNES SANTACRUZ LA 93',
+  'CARNES SANTACRUZ MALAMBO',
+  'CARNES SANTACRUZ OLAYA',
+  'CARNES SANTACRUZ PEREIRA',
+  'CARNES SANTACRUZ SAN FELIPE',
+  'CARNES SANTACRUZ SIMON BOLIVAR',
+  'CARNES SANTACRUZ SOLEDAD',
+  'RESTAURANTE LA 43',
+  'RESTAURANTE MALAMBO',
+  'SANTACRUZ CENTRO',
+]
+
+// Registra la principal de Carnes Santacruz (si falta) y asigna esa principal a
+// sus sucursales hijas por nombre. Idempotente: no pisa asignaciones existentes.
+export function asegurarPrincipalCarnes(actual: Sucursal[]): {
+  lista: Sucursal[]
+  cambios: number
+} {
+  let cambios = 0
+  const hijas = new Set(HIJAS_CARNES.map((n) => n.toUpperCase()))
+  const lista = actual.map((s) => {
+    if (
+      hijas.has(s.nombre.trim().toUpperCase()) &&
+      (s.principal || '').trim().toUpperCase() !== PRINCIPAL_CARNES
+    ) {
+      cambios++
+      return { ...s, principal: PRINCIPAL_CARNES }
+    }
+    return s
+  })
+
+  const existePrincipal = lista.some(
+    (s) => s.nombre.trim().toUpperCase() === PRINCIPAL_CARNES,
+  )
+  if (!existePrincipal) {
+    cambios++
+    lista.push({
+      id: `carnes-${slugSucursal(PRINCIPAL_CARNES)}`,
+      nombre: PRINCIPAL_CARNES,
+      empresa: 'CARNES SANTACRUZ',
+      direccion: '',
+      ciudad: '',
+      telefono: '',
+      principal: '',
+    })
+  }
+
+  if (cambios === 0) return { lista: actual, cambios: 0 }
+  return {
+    lista: lista.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+    cambios,
+  }
+}
+
 export function cargarFirmantes(): Firmante[] {
   try {
     const raw = localStorage.getItem(FIRMANTES_KEY)

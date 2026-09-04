@@ -6,6 +6,7 @@ import { useCatalogo } from './catalogosStore'
 import { firmadoresSeed } from './datosCatalogos'
 import {
   asegurarBaseOlimpica,
+  asegurarPrincipalCarnes,
   cargarSucursales,
   guardarSucursales,
   type Sucursal,
@@ -43,6 +44,17 @@ export function Sucursales() {
     localStorage.setItem('sigtraz_seed_olimpica_v1', '1')
     const { lista, agregadas } = asegurarBaseOlimpica(cargarSucursales())
     if (agregadas > 0) {
+      setSucursales(lista)
+      guardarSucursales(lista)
+    }
+  }, [])
+
+  // Amarra las sucursales de Carnes Santacruz a su principal una sola vez.
+  useEffect(() => {
+    if (localStorage.getItem('sigtraz_seed_principal_carnes_v1')) return
+    localStorage.setItem('sigtraz_seed_principal_carnes_v1', '1')
+    const { lista, cambios } = asegurarPrincipalCarnes(cargarSucursales())
+    if (cambios > 0) {
       setSucursales(lista)
       guardarSucursales(lista)
     }
