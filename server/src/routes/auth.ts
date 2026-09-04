@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { query } from '../db.js'
+import { config } from '../config.js'
 import {
   firmarToken,
   requireAuth,
@@ -76,6 +77,89 @@ authRouter.post('/login', async (req, res, next) => {
     const valido = await verificarPassword(password, hash)
     if (!valido) {
       res.status(401).json({ error: 'Credenciales invalidas' })
+      return
+    }
+
+    const usuario = mapUsuario(fila)
+    const sid = await crearSesion(usuario.id, req.headers['user-agent'])
+    const token = firmarToken({
+      sub: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+      nombre: usuario.nombre,
+      sid,
+    })
+
+    const respuesta: LoginResponse = { token, usuario }
+    res.json(respuesta)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// Inicio de sesion por SSO: canjea el ticket emitido por la Suite y devuelve el JWT local.
+authRouter.post('/sso-login', async (req, res, next) => {
+  try {
+    const ticket = ((req.body?.ticket as string | undefined) ?? '').trim()
+    if (!ticket) {
+      res.status(400).json({ error: 'Falta el ticket SSO' })
+      return
+    }
+    if (!config.sso.sharedSecret) {
+      res.status(500).json({ error: 'SSO no configurado en el servidor' })
+      return
+    }
+
+    const redeemRes = await fetch(`${config.sso.suiteUrl}/api/sso/redeem`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-SSO-Secret': config.sso.sharedSecret,
+      },
+      body: JSON.stringify({ ticket }),
+    })
+
+    if (!redeemRes.ok) {
+      const cuerpo = (await redeemRes.json().catch(() => ({}))) as { message?: string }
+      res.status(401).json({ error: cuerpo.message || 'Ticket SSO invalido o expirado' })
+      return
+    }
+
+    const identidad = (await redeemRes.json()) as {
+      email?: string
+      cedula?: string
+      name?: string
+    }
+    const email = (identidad.email ?? '').trim()
+    const cedula = (identidad.cedula ?? '').toString().trim()
+    if (!email && !cedula) {
+      res.status(422).json({ error: 'El usuario SSO no tiene cédula ni correo asociado' })
+      return
+    }
+
+    const rows = await query(
+      `SELECT u.id, u.nombre, u.apellido, u.email, u.rol, u.empresa, u.activo, u.fecha_creacion, u.modulos,
+              COALESCE(
+                ARRAY_AGG(upv.punto_venta_id)
+                  FILTER (WHERE upv.punto_venta_id IS NOT NULL),
+                '{}'
+              ) AS puntos_venta
+         FROM usuarios u
+         LEFT JOIN usuarios_puntos_venta upv ON upv.usuario_id = u.id
+        WHERE ($1 <> '' AND u.cedula = $1)
+           OR ($2 <> '' AND lower(u.email) = lower($2))
+        GROUP BY u.id
+        LIMIT 1`,
+      [cedula, email],
+    )
+
+    const fila = rows[0]
+    if (!fila) {
+      res.status(403).json({ error: 'No tienes una cuenta en SIGTRAZ. Contacta al administrador.' })
+      return
+    }
+    if (!fila.activo) {
+      res.status(403).json({ error: 'Usuario inactivo' })
       return
     }
 

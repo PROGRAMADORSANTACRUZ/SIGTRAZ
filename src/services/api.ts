@@ -314,6 +314,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  ssoLogin: (ticket: string) =>
+    pedir<LoginResponse>('/auth/sso-login', {
+      method: 'POST',
+      body: JSON.stringify({ ticket }),
+    }),
   getMe: () => pedir<Usuario>('/auth/me'),
   estadoSesion: () => pedir<{ activa: boolean }>('/auth/estado'),
   logout: () =>

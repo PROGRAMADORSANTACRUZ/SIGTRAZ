@@ -16,6 +16,7 @@ interface AuthContextValue {
   autenticado: boolean
   inicializando: boolean
   login: (email: string, password: string) => Promise<Usuario>
+  loginConSso: (ticket: string) => Promise<Usuario>
   logout: () => void
 }
 
@@ -51,6 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return usuario
   }, [])
 
+  const loginConSso = useCallback(async (ticket: string) => {
+    const { token, usuario } = await api.ssoLogin(ticket)
+    setToken(token)
+    await precargarAgro()
+    setUsuario(usuario)
+    return usuario
+  }, [])
+
   const logout = useCallback(() => {
     // Avisa al servidor para cerrar la sesion en la base de datos (no bloquea).
     void api.logout()
@@ -76,9 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       autenticado: usuario !== null,
       inicializando,
       login,
+      loginConSso,
       logout,
     }),
-    [usuario, inicializando, login, logout],
+    [usuario, inicializando, login, loginConSso, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

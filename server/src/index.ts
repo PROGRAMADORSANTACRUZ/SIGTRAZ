@@ -5,6 +5,7 @@ import { requireAuth, soloAdminElimina } from './auth.js'
 import { cargarScopePdv } from './scope.js'
 import { query } from './db.js'
 import { authRouter } from './routes/auth.js'
+import { provisioningRouter } from './routes/provisioning.js'
 import { accionesRouter } from './routes/acciones.js'
 import { activosRouter } from './routes/activos.js'
 import { formacionesRouter } from './routes/formaciones.js'
@@ -96,6 +97,8 @@ app.get('/api/health', async (_req, res) => {
 
 // Rutas publicas
 app.use('/api/auth', authRouter)
+// Aprovisionamiento server-to-server desde la Suite (protegido con secreto SSO).
+app.use('/api/provisioning', provisioningRouter)
 app.use('/api/trazabilidad', trazabilidadRouter)
 
 // Rutas protegidas (requieren token JWT)
@@ -174,6 +177,11 @@ async function asegurarTablas(): Promise<void> {
   await query(
     'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(120)',
   )
+  // Cédula: clave canónica compartida con la Suite (para SSO y aprovisionamiento).
+  await query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cedula VARCHAR(30)')
+  await query('CREATE UNIQUE INDEX IF NOT EXISTS usuarios_cedula_uidx ON usuarios (cedula) WHERE cedula IS NOT NULL')
+  // Permite usuarios sin email (identificados solo por cédula desde la Suite).
+  await query('ALTER TABLE usuarios ALTER COLUMN email DROP NOT NULL')
 }
 
 asegurarTablas()

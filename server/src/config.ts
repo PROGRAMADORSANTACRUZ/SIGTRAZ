@@ -14,6 +14,11 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET ?? 'cambia-esta-clave-en-produccion',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '8h',
   seedPassword: process.env.SEED_PASSWORD ?? 'sigtraz123',
+  // SSO con la Suite Santa Cruz (canje de tickets server-to-server).
+  sso: {
+    suiteUrl: (process.env.SUITE_URL ?? process.env.SCTOOLS_URL ?? 'http://localhost:8000').replace(/\/$/, ''),
+    sharedSecret: process.env.SSO_SHARED_SECRET ?? '',
+  },
   db: {
     host: requerido('DB_HOST', 'localhost'),
     port: Number(process.env.DB_PORT ?? 5432),

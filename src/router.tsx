@@ -30,6 +30,7 @@ import { TrazabilidadEntrada } from './pages/TrazabilidadEntrada'
 import { TrazabilidadAcondicionamiento } from './pages/TrazabilidadAcondicionamiento'
 import { TrazabilidadSalida } from './pages/TrazabilidadSalida'
 import { Login } from './pages/Login'
+import { SsoCallback } from './pages/SsoCallback'
 import { Movimientos } from './pages/Movimientos'
 import { Productos } from './pages/Productos'
 import { Proveedores } from './pages/Proveedores'
@@ -62,6 +63,7 @@ import { MovimientosLog } from './pages/agropecuaria/MovimientosLog'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  { path: '/sso/callback', element: <SsoCallback /> },
   { path: '/t/:id', element: <TrazabilidadEntrada /> },
   { path: '/ta/:id', element: <TrazabilidadAcondicionamiento /> },
   { path: '/ts/:id', element: <TrazabilidadSalida /> },
