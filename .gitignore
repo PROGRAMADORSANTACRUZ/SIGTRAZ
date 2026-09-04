@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Logs de compilación temporales
+fb.txt
+fb2.txt
+bb.txt
+
 # Variables de entorno (contienen credenciales)
 .env
 .env.*
