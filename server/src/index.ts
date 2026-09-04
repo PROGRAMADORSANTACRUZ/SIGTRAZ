@@ -170,6 +170,10 @@ async function asegurarTablas(): Promise<void> {
       ' fecha_actualizacion  TIMESTAMP NOT NULL DEFAULT now()' +
       ')',
   )
+  // Columna cargo en usuarios (migracion idempotente para produccion).
+  await query(
+    'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(120)',
+  )
 }
 
 asegurarTablas()
