@@ -159,6 +159,8 @@ interface Certificado {
   firmante: string
   cargo: string
   sucursal: string
+  lotesManual: string[]
+  puntosVenta: string[]
 }
 
 // Titulos de las secciones 2 a 5 del cuestionario.
@@ -200,6 +202,8 @@ const formVacio = (): Omit<Certificado, 'id'> => ({
   firmante: '',
   cargo: '',
   sucursal: '',
+  lotesManual: [],
+  puntosVenta: [],
 })
 
 // Numero consecutivo por regla: ASP-1, ASP-2, ...
@@ -916,6 +920,42 @@ export function CertificadoPorcino() {
     }))
   }
 
+  // Lotes escritos manualmente (paso 1), independientes de las curvas.
+  function agregarLoteManual(v: string) {
+    const lote = v.trim()
+    if (!lote) return
+    setForm((prev) =>
+      prev.lotesManual.includes(lote)
+        ? prev
+        : { ...prev, lotesManual: [...prev.lotesManual, lote] },
+    )
+  }
+
+  function quitarLoteManual(v: string) {
+    setForm((prev) => ({
+      ...prev,
+      lotesManual: prev.lotesManual.filter((l) => l !== v),
+    }))
+  }
+
+  // Puntos de venta escritos manualmente (paso 1).
+  function agregarPuntoVenta(v: string) {
+    const p = v.trim()
+    if (!p) return
+    setForm((prev) =>
+      prev.puntosVenta.includes(p)
+        ? prev
+        : { ...prev, puntosVenta: [...prev.puntosVenta, p] },
+    )
+  }
+
+  function quitarPuntoVenta(v: string) {
+    setForm((prev) => ({
+      ...prev,
+      puntosVenta: prev.puntosVenta.filter((p) => p !== v),
+    }))
+  }
+
   function actualizarGuia(
     lote: string,
     fecha: string,
@@ -1273,6 +1313,39 @@ export function CertificadoPorcino() {
                 />
               </label>
               <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">
+                  Lotes
+                </span>
+                <SelectorBuscable
+                  opciones={[]}
+                  value=""
+                  onChange={(v) => agregarLoteManual(v)}
+                  permitirLibre
+                  placeholder="Escribe y agrega"
+                  buscarPlaceholder="Escribe el lote..."
+                />
+                {form.lotesManual.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {form.lotesManual.map((l) => (
+                      <span
+                        key={l}
+                        className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+                      >
+                        {l}
+                        <button
+                          type="button"
+                          onClick={() => quitarLoteManual(l)}
+                          className="text-brand-500 hover:text-brand-800"
+                          aria-label="Quitar lote"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </label>
+              <label className="block">
                 <button
                   type="button"
                   onClick={() =>
@@ -1309,7 +1382,7 @@ export function CertificadoPorcino() {
                 />
               </label>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">
                   Firmante
@@ -1331,6 +1404,39 @@ export function CertificadoPorcino() {
                   className="w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600 focus:outline-none"
                   value={form.cargo}
                 />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">
+                  Puntos de ventas
+                </span>
+                <SelectorBuscable
+                  opciones={[]}
+                  value=""
+                  onChange={(v) => agregarPuntoVenta(v)}
+                  permitirLibre
+                  placeholder="Escribe y agrega"
+                  buscarPlaceholder="Escribe el punto de venta..."
+                />
+                {form.puntosVenta.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {form.puntosVenta.map((p) => (
+                      <span
+                        key={p}
+                        className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+                      >
+                        {p}
+                        <button
+                          type="button"
+                          onClick={() => quitarPuntoVenta(p)}
+                          className="text-brand-500 hover:text-brand-800"
+                          aria-label="Quitar punto de venta"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </label>
             </div>
           </section>
