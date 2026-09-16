@@ -462,8 +462,8 @@ export function AnteMortem() {
     }
   }
 
-  function registrosExportar() {
-    const filas = registrosFiltrados.filter((r) => seleccionados.has(r.id))
+  function registrosExportar(filasBase?: RegistroAnteMortem[]) {
+    const filas = filasBase ?? registrosFiltrados.filter((r) => seleccionados.has(r.id))
     return filas.map((r) => ({
       'FECHA INGRESO': r.fechaIngreso,
       'FECHA BENEFICIO': r.fechaBeneficio,
@@ -496,8 +496,8 @@ export function AnteMortem() {
     }))
   }
 
-  async function exportarExcel() {
-    const datos = registrosExportar()
+  async function exportarExcel(filasBase?: RegistroAnteMortem[]) {
+    const datos = registrosExportar(filasBase)
     if (datos.length === 0) return
     const columnas = Object.keys(datos[0])
     const nCol = columnas.length
@@ -660,10 +660,24 @@ export function AnteMortem() {
     })
     const url = URL.createObjectURL(salida)
     const enlace = document.createElement('a')
-    enlace.download = 'ante-mortem.xlsx'
+    enlace.download = filasBase ? 'ante-mortem-ayer.xlsx' : 'ante-mortem.xlsx'
     enlace.href = url
     enlace.click()
     URL.revokeObjectURL(url)
+  }
+
+  // Exporta, sin necesidad de seleccion manual, los registros cuya fecha de
+  // ingreso corresponde al dia calendario anterior al de hoy.
+  function exportarExcelAyer() {
+    const ayer = new Date()
+    ayer.setDate(ayer.getDate() - 1)
+    const fechaAyer = ayer.toLocaleDateString('en-CA')
+    const filas = registros.filter((r) => r.fechaIngreso === fechaAyer)
+    if (filas.length === 0) {
+      setMsgLote('No hay registros de Ante Mortem con fecha de ingreso de ayer.')
+      return
+    }
+    void exportarExcel(filas)
   }
 
   function exportarPDF() {
@@ -1171,10 +1185,17 @@ export function AnteMortem() {
                 </>
               )}
               <button
-                onClick={exportarExcel}
+                onClick={() => void exportarExcel()}
                 className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
               >
                 Excel
+              </button>
+              <button
+                onClick={exportarExcelAyer}
+                title="Exporta automaticamente los Ante Mortem con fecha de ingreso de ayer"
+                className="rounded-md border border-sky-300 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100"
+              >
+                Exportar Excel (ayer)
               </button>
               <button
                 onClick={exportarPDF}
