@@ -1,29 +1,16 @@
 version: '3.8'
 
-services:
-  # PostgreSQL Database
-  db:
-    image: postgres:16-alpine
-    container_name: sigtraz-db
-    environment:
-      POSTGRES_USER: ${DB_USER:-sigtraz}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-sigtraz123}
-      POSTGRES_DB: ${DB_DATABASE:-sigtraz}
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    ports:
-      - "${DB_PORT:-5432}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sigtraz}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - sigtraz-network
-    restart: unless-stopped
-    labels:
-      - "dokploy.managed=true"
+# IMPORTANTE: este compose NO crea un contenedor de base de datos propio.
+# La base de datos real de SIGTRAZ ya existe como un recurso separado en
+# Dokploy (con datos de produccion) — NUNCA agregar aqui un servicio "db"
+# nuevo, o el backend podria terminar conectado a una base vacia distinta.
+# Backend y frontend se unen a la red externa DOKPLOY_NETWORK (por defecto
+# "dokploy-network") para poder alcanzar ese recurso de base de datos ya
+# existente por su hostname interno (el mismo que usa la app actual en la
+# pestana Environment de Dokploy: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD,
+# DB_DATABASE).
 
+services:
   # Backend API
   backend:
     build:
@@ -33,22 +20,20 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-sigtraz}
-      DB_PASSWORD: ${DB_PASSWORD:-sigtraz123}
-      DB_DATABASE: ${DB_DATABASE:-sigtraz}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://sigtraz.grupo-santacruz.com}
-      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
-      SEED_PASSWORD: ${SEED_PASSWORD:-sigtraz123}
+      SEED_PASSWORD: ${SEED_PASSWORD}
     ports:
       - "${API_PORT:-4000}:4000"
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - sigtraz-network
+      - dokploy-network
     restart: unless-stopped
     labels:
       - "dokploy.managed=true"
@@ -84,10 +69,8 @@ services:
       - "traefik.http.middlewares.sigtraz-redirectslash.redirectregex.replacement=$${1}/"
       - "traefik.http.routers.sigtraz.middlewares=sigtraz-redirectslash"
 
-volumes:
-  db_data:
-    driver: local
-
 networks:
   sigtraz-network:
     driver: bridge
+  dokploy-network:
+    external: true
