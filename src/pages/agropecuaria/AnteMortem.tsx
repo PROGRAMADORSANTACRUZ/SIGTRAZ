@@ -715,7 +715,7 @@ export function AnteMortem() {
       if (filaHead === -1) throw new Error('sin-encabezados')
 
       let ultimaFila = filaHead
-      ws.eachRow((row, num) => {
+      ws.eachRow((_row, num) => {
         if (num > ultimaFila) ultimaFila = num
       })
 
