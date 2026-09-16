@@ -63,13 +63,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://sigtraz.grupo-santacruz.com/api}
     container_name: sigtraz-web
     ports:
       - "${WEB_PORT:-3000}:80"
     depends_on:
       - backend
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-https://sigtraz.grupo-santacruz.com/api}
     networks:
       - sigtraz-network
     restart: unless-stopped

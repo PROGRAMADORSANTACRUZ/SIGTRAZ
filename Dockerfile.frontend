@@ -3,6 +3,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Vite incrusta las variables VITE_* en el bundle durante el build, por eso
+# deben llegar como build ARG (no como env de runtime del contenedor final).
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 # Copy package files
 COPY package*.json ./
 
