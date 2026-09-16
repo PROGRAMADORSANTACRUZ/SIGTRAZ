@@ -950,6 +950,7 @@ export function PosMortemPorcino() {
                   <th className="px-4 py-3">Fecha</th>
                   <th className="px-4 py-3">Lote</th>
                   <th className="px-4 py-3">Cliente</th>
+                  <th className="px-4 py-3">Gancho</th>
                   <th className="px-4 py-3">Organos</th>
                   <th className="px-4 py-3">Acciones</th>
                 </tr>
@@ -971,6 +972,11 @@ export function PosMortemPorcino() {
                     <td className="px-4 py-3">{g.fecha}</td>
                     <td className="px-4 py-3">{g.loteSacrificio}</td>
                     <td className="px-4 py-3">{g.cliente}</td>
+                    <td className="px-4 py-3">
+                      {[...new Set(g.items.map((i) => i.gancho).filter(Boolean))].join(
+                        ', ',
+                      ) || '-'}
+                    </td>
                     <td className="px-4 py-3">{g.items.length}</td>
                     <td className="px-4 py-3">
                       <button
@@ -984,7 +990,7 @@ export function PosMortemPorcino() {
                 ))}
                 {grupos.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                       No hay registros. Usa "+ Nuevo" para crear el primero.
                     </td>
                   </tr>
