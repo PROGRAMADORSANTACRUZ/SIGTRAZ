@@ -115,7 +115,6 @@ export type ActualizarUsuario = Omit<Usuario, 'id' | 'fechaCreacion'> & {
 }
 
 export interface LoginResponse {
-  token: string
   usuario: Usuario
 }
 

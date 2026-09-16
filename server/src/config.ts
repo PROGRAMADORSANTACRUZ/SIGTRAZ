@@ -9,6 +9,7 @@ function requerido(nombre: string, valorPorDefecto?: string): string {
 }
 
 export const config = {
+  esProduccion: process.env.NODE_ENV === 'production',
   port: Number(process.env.PORT ?? 4000),
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   jwtSecret: process.env.JWT_SECRET ?? 'cambia-esta-clave-en-produccion',

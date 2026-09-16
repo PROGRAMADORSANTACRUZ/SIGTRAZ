@@ -1,4 +1,5 @@
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { config } from './config.js'
 import { requireAuth, soloAdminElimina } from './auth.js'
@@ -79,8 +80,11 @@ app.use(
       }
       cb(new Error('Origen no permitido por CORS'))
     },
+    // Necesario para que el navegador envie/reciba la cookie httpOnly del token.
+    credentials: true,
   }),
 )
+app.use(cookieParser())
 app.use(express.json({ limit: '10mb' }))
 
 // Solo el rol Administrador puede eliminar (cualquier peticion DELETE).

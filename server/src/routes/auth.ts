@@ -9,6 +9,8 @@ import {
   crearSesion,
   cerrarSesion,
   sesionSigueActiva,
+  TOKEN_COOKIE,
+  opcionesCookieToken,
 } from '../auth.js'
 import type { EmpresaUsuario, LoginResponse, RolUsuario, Usuario } from '../types.js'
 
@@ -90,7 +92,8 @@ authRouter.post('/login', async (req, res, next) => {
       sid,
     })
 
-    const respuesta: LoginResponse = { token, usuario }
+    res.cookie(TOKEN_COOKIE, token, opcionesCookieToken())
+    const respuesta: LoginResponse = { usuario }
     res.json(respuesta)
   } catch (err) {
     next(err)
@@ -173,7 +176,8 @@ authRouter.post('/sso-login', async (req, res, next) => {
       sid,
     })
 
-    const respuesta: LoginResponse = { token, usuario }
+    res.cookie(TOKEN_COOKIE, token, opcionesCookieToken())
+    const respuesta: LoginResponse = { usuario }
     res.json(respuesta)
   } catch (err) {
     next(err)
@@ -184,6 +188,7 @@ authRouter.post('/sso-login', async (req, res, next) => {
 authRouter.post('/logout', requireAuth, async (req, res, next) => {
   try {
     await cerrarSesion(req.usuario?.sid)
+    res.clearCookie(TOKEN_COOKIE, { path: '/' })
     res.status(204).end()
   } catch (err) {
     next(err)
@@ -195,7 +200,7 @@ authRouter.post('/logout', requireAuth, async (req, res, next) => {
 // cliente cierra sesion al instante.
 authRouter.get('/estado', async (req, res, next) => {
   try {
-    const activa = await sesionSigueActiva(req.headers.authorization)
+    const activa = await sesionSigueActiva(req)
     if (!activa) {
       res.status(401).json({ error: 'Sesion cerrada' })
       return

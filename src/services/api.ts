@@ -54,8 +54,6 @@ const API_URL =
   // configurar ninguna IP.
   `${window.location.protocol}//${window.location.hostname}:4000/api`
 
-export const TOKEN_KEY = 'sigtraz_token'
-
 export type NuevaEntrada = Omit<Entrada, 'id'>
 export type NuevoProducto = Omit<Producto, 'id' | 'categoria'> & {
   categoria?: string
@@ -227,7 +225,6 @@ export interface Estadisticas {
 }
 
 export interface LoginResponse {
-  token: string
   usuario: Usuario
 }
 
@@ -239,13 +236,18 @@ export interface AgroKv {
   valor: unknown
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+// El token de sesion ya no se guarda en localStorage: viaja en una cookie
+// httpOnly que el navegador envia solo, invisible para el JS de la pagina.
+// Este flag en memoria (se pierde al recargar) solo sirve para que otros
+// modulos (agroSync) sepan si hay sesion sin poder leer la cookie.
+let autenticado = false
+
+export function estaAutenticado(): boolean {
+  return autenticado
 }
 
-export function setToken(token: string | null): void {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+export function marcarAutenticado(valor: boolean): void {
+  autenticado = valor
 }
 
 export const PDV_KEY = 'sigtraz_pdv'
@@ -262,13 +264,13 @@ export function setPuntoVentaActivo(id: string | number | null): void {
 }
 
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
-  const token = getToken()
   const pdv = getPuntoVentaActivo()
   const resp = await fetch(`${API_URL}${ruta}`, {
     ...init,
+    // Envia/recibe la cookie httpOnly del token entre origenes (celular/LAN).
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(pdv ? { 'X-Punto-Venta': pdv } : {}),
       ...init?.headers,
     },
@@ -286,7 +288,7 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
       ruta.startsWith('/ts/') ||
       ruta.startsWith('/sso/')
     if (!esRutaPublica) {
-      setToken(null)
+      marcarAutenticado(false)
       window.location.href = '/login'
       throw new Error('Sesion expirada')
     }

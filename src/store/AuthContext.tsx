@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { api, getToken, setToken, setPuntoVentaActivo } from '../services/api'
+import { api, marcarAutenticado, setPuntoVentaActivo } from '../services/api'
 import { precargarAgro } from '../services/agroSync'
 import type { Usuario } from '../types/trazabilidad'
 
@@ -27,24 +27,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [inicializando, setInicializando] = useState(true)
 
   useEffect(() => {
-    // Rehidrata la sesion si hay token guardado.
-    if (!getToken()) {
-      setInicializando(false)
-      return
-    }
+    // Rehidrata la sesion contra el backend: el token viaja en una cookie
+    // httpOnly que el JS no puede leer, asi que se intenta /auth/me siempre.
     api
       .getMe()
-      .then((u) => setUsuario(u))
+      .then((u) => {
+        marcarAutenticado(true)
+        setUsuario(u)
+      })
       .catch(() => {
-        setToken(null)
+        marcarAutenticado(false)
         setUsuario(null)
       })
       .finally(() => setInicializando(false))
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
-    const { token, usuario } = await api.login(email, password)
-    setToken(token)
+    const { usuario } = await api.login(email, password)
+    marcarAutenticado(true)
     // Descarga los datos de Agropecuaria del servidor antes de navegar, para
     // que las paginas los muestren ya sincronizados entre dispositivos.
     await precargarAgro()
@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loginConSso = useCallback(async (ticket: string) => {
-    const { token, usuario } = await api.ssoLogin(ticket)
-    setToken(token)
+    const { usuario } = await api.ssoLogin(ticket)
+    marcarAutenticado(true)
     await precargarAgro()
     setUsuario(usuario)
     return usuario
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     // Avisa al servidor para cerrar la sesion en la base de datos (no bloquea).
     void api.logout()
-    setToken(null)
+    marcarAutenticado(false)
     setPuntoVentaActivo(null)
     setUsuario(null)
   }, [])

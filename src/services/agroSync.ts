@@ -1,4 +1,4 @@
-import { api, getToken } from './api'
+import { api, estaAutenticado } from './api'
 
 // Sincronizacion de los modulos de Agropecuaria entre dispositivos (PC <-> cel).
 //
@@ -45,7 +45,7 @@ export function instalarSyncAgro(): void {
   localStorage.setItem = (clave: string, valor: string) => {
     original(clave, valor)
     if (aplicandoRemoto || !esClaveAgro(clave)) return
-    if (!getToken()) return
+    if (!estaAutenticado()) return
 
     const previo = snapshotServidor.get(clave)
     // Eco de montaje: la pagina reescribe el mismo valor que llego del servidor.
@@ -75,7 +75,10 @@ export function instalarSyncAgro(): void {
 // localStorage. Debe llamarse antes de montar las paginas para que sus estados
 // iniciales lean los datos ya sincronizados.
 export async function precargarAgro(): Promise<void> {
-  if (!getToken()) return
+  // No se comprueba estaAutenticado() aqui: el token vive en una cookie
+  // httpOnly y esta funcion se llama al arrancar la app (antes de saber si
+  // hay sesion). Si no hay cookie valida, el backend responde 401 y el catch
+  // de abajo lo ignora silenciosamente.
   try {
     const items = await api.getAgroKv()
     const clavesServidor = new Set(items.map((i) => i.clave))

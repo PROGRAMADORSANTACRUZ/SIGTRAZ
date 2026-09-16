@@ -14,6 +14,19 @@ export interface TokenPayload {
   sid?: string
 }
 
+/** Nombre de la cookie httpOnly donde viaja el JWT (ya no se guarda en localStorage). */
+export const TOKEN_COOKIE = 'sigtraz_token'
+
+/** Extrae el token de la cookie httpOnly, o del header Authorization como respaldo. */
+function extraerToken(req: Request): string | undefined {
+  const deCookie = (req as Request & { cookies?: Record<string, string> }).cookies?.[
+    TOKEN_COOKIE
+  ]
+  if (deCookie) return deCookie
+  const header = req.headers.authorization
+  return header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined
+}
+
 /** Crea una fila de sesion y devuelve su id (para incrustarlo en el token). */
 export async function crearSesion(
   usuarioId: string,
@@ -37,16 +50,12 @@ export async function cerrarSesion(sid: string | undefined): Promise<void> {
  * actividad (para el "latido" del cliente, que no debe contar como uso). Cierra
  * la sesion si supero la inactividad. Devuelve false si ya no es valida.
  */
-export async function sesionSigueActiva(
-  authHeader: string | undefined,
-): Promise<boolean> {
-  if (!authHeader?.startsWith('Bearer ')) return false
+export async function sesionSigueActiva(req: Request): Promise<boolean> {
+  const token = extraerToken(req)
+  if (!token) return false
   let payload: TokenPayload
   try {
-    payload = jwt.verify(
-      authHeader.slice('Bearer '.length),
-      config.jwtSecret,
-    ) as TokenPayload
+    payload = jwt.verify(token, config.jwtSecret) as TokenPayload
   } catch {
     return false
   }
@@ -85,6 +94,28 @@ export async function passwordUsuarioValida(
   return verificarPassword(password, hash)
 }
 
+/** Convierte duraciones simples ('8h', '30m', '7d') a milisegundos para la cookie. */
+function duracionAMs(duracion: string): number | undefined {
+  const m = /^(\d+)\s*(s|m|h|d)$/.exec(duracion.trim())
+  if (!m) return undefined
+  const unidades = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 } as const
+  return Number(m[1]) * unidades[m[2] as keyof typeof unidades]
+}
+
+/** Opciones de la cookie httpOnly que reemplaza al token en localStorage. */
+export function opcionesCookieToken() {
+  return {
+    httpOnly: true as const,
+    // Same-site (mismo host) tanto en produccion (mismo dominio via Traefik)
+    // como en LAN (celular por IP: puerto distinto pero mismo host), por lo
+    // que 'lax' basta sin necesitar 'none' + HTTPS obligatorio.
+    sameSite: 'lax' as const,
+    secure: config.esProduccion,
+    path: '/',
+    maxAge: duracionAMs(config.jwtExpiresIn),
+  }
+}
+
 export function firmarToken(payload: TokenPayload): string {
   return jwt.sign(payload, config.jwtSecret, {
     expiresIn: config.jwtExpiresIn,
@@ -105,13 +136,12 @@ export function requireAuth(
   res: Response,
   next: NextFunction,
 ): void {
-  const header = req.headers.authorization
-  if (!header?.startsWith('Bearer ')) {
+  const token = extraerToken(req)
+  if (!token) {
     res.status(401).json({ error: 'No autenticado' })
     return
   }
 
-  const token = header.slice('Bearer '.length)
   let payload: TokenPayload
   try {
     payload = jwt.verify(token, config.jwtSecret) as TokenPayload
@@ -157,16 +187,13 @@ export function soloAdminElimina(
     next()
     return
   }
-  const header = req.headers.authorization
-  if (!header?.startsWith('Bearer ')) {
+  const token = extraerToken(req)
+  if (!token) {
     res.status(401).json({ error: 'No autenticado' })
     return
   }
   try {
-    const payload = jwt.verify(
-      header.slice('Bearer '.length),
-      config.jwtSecret,
-    ) as TokenPayload
+    const payload = jwt.verify(token, config.jwtSecret) as TokenPayload
     if ((payload.rol ?? '').trim().toLowerCase() !== 'administrador') {
       res.status(403).json({ error: 'Solo un administrador puede eliminar' })
       return
