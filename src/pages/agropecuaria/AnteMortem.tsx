@@ -214,6 +214,7 @@ export function AnteMortem() {
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
   const inputLoteRef = useRef<HTMLInputElement>(null)
+  const inputExportAyerRef = useRef<HTMLInputElement>(null)
   const [msgLote, setMsgLote] = useState<string | null>(null)
   // Por defecto se muestra el mes actual y el rango Desde/Hasta en la fecha de
   // hoy, para ver de una vez las inspecciones del dia.
@@ -668,16 +669,80 @@ export function AnteMortem() {
 
   // Exporta, sin necesidad de seleccion manual, los registros cuya fecha de
   // ingreso corresponde al dia calendario anterior al de hoy.
-  function exportarExcelAyer() {
+  function registrosAyer(): RegistroAnteMortem[] {
     const ayer = new Date()
     ayer.setDate(ayer.getDate() - 1)
     const fechaAyer = ayer.toLocaleDateString('en-CA')
-    const filas = registros.filter((r) => r.fechaIngreso === fechaAyer)
+    return registros.filter((r) => r.fechaIngreso === fechaAyer)
+  }
+
+  function exportarExcelAyer() {
+    inputExportAyerRef.current?.click()
+  }
+
+  // Toma el Excel que el usuario ya tiene (su plantilla) y le agrega, al
+  // final, las filas de Ante Mortem con fecha de ingreso de ayer, respetando
+  // las columnas existentes segun el texto de sus encabezados.
+  async function agregarAyerAExcel(file: File) {
+    const filas = registrosAyer()
     if (filas.length === 0) {
       setMsgLote('No hay registros de Ante Mortem con fecha de ingreso de ayer.')
       return
     }
-    void exportarExcel(filas)
+    const datos = registrosExportar(filas)
+    try {
+      const wb = new ExcelJS.Workbook()
+      await wb.xlsx.load(await file.arrayBuffer())
+      const ws = wb.worksheets[0]
+      if (!ws) throw new Error('sin-hoja')
+
+      // Busca, en las primeras 15 filas, la fila de encabezados y arma un
+      // mapa TEXTO_ENCABEZADO -> numero de columna.
+      let filaHead = -1
+      const colPorEncabezado = new Map<string, number>()
+      for (let r = 1; r <= 15 && filaHead === -1; r++) {
+        const row = ws.getRow(r)
+        const encontrados = new Map<string, number>()
+        row.eachCell({ includeEmpty: false }, (cell, col) => {
+          const texto = String(cell.value ?? '').trim().toUpperCase()
+          if (texto) encontrados.set(texto, col)
+        })
+        if (encontrados.has('FECHA INGRESO')) {
+          filaHead = r
+          encontrados.forEach((col, texto) => colPorEncabezado.set(texto, col))
+        }
+      }
+      if (filaHead === -1) throw new Error('sin-encabezados')
+
+      let ultimaFila = filaHead
+      ws.eachRow((row, num) => {
+        if (num > ultimaFila) ultimaFila = num
+      })
+
+      datos.forEach((fila, idx) => {
+        const row = ws.getRow(ultimaFila + 1 + idx)
+        Object.entries(fila as Record<string, unknown>).forEach(([encabezado, valor]) => {
+          const col = colPorEncabezado.get(encabezado)
+          if (col) row.getCell(col).value = valor as string | number
+        })
+      })
+
+      const buffer = await wb.xlsx.writeBuffer()
+      const salida = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const url = URL.createObjectURL(salida)
+      const enlace = document.createElement('a')
+      enlace.download = file.name.replace(/\.xlsx$/i, '') + '-actualizado.xlsx'
+      enlace.href = url
+      enlace.click()
+      URL.revokeObjectURL(url)
+      setMsgLote(`${datos.length} registro(s) de ayer agregado(s) a "${file.name}".`)
+    } catch {
+      setMsgLote(
+        'No se pudo agregar a ese archivo. Verifica que tenga la columna "FECHA INGRESO" en sus encabezados.',
+      )
+    }
   }
 
   function exportarPDF() {
@@ -1192,11 +1257,23 @@ export function AnteMortem() {
               </button>
               <button
                 onClick={exportarExcelAyer}
-                title="Exporta automaticamente los Ante Mortem con fecha de ingreso de ayer"
+                title="Elige tu Excel y le agrega al final los Ante Mortem con fecha de ingreso de ayer"
                 className="rounded-md border border-sky-300 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100"
               >
                 Exportar Excel (ayer)
               </button>
+              <input
+                ref={inputExportAyerRef}
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                data-no-upper
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  e.currentTarget.value = ''
+                  if (f) void agregarAyerAExcel(f)
+                }}
+              />
               <button
                 onClick={exportarPDF}
                 className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-100"
