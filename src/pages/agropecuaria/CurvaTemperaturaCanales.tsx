@@ -8,6 +8,7 @@ import { api } from '../../services/api'
 import { cuartosFriosSeed } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
 import { cargarSucursales } from './sucursalesStore'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_curva_canales'
 const ANTEMORTEM_KEY = 'agro_antemortem'
@@ -287,7 +288,7 @@ export function CurvaTemperaturaCanales() {
     : []
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ordenes))
+    guardarLocal(STORAGE_KEY, JSON.stringify(ordenes))
   }, [ordenes])
 
   function actualizar<K extends keyof Omit<Orden, 'id' | 'canales' | 'mediciones'>>(

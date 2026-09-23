@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 export interface CambioCampo {
   campo: string
@@ -40,7 +41,7 @@ export function agregarMovimiento(
     },
     ...movimientos,
   ]
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(movimientos))
+  guardarLocal(STORAGE_KEY, JSON.stringify(movimientos))
   listeners.forEach((l) => l())
 }
 

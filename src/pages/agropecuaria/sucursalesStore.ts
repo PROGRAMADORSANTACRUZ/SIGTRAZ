@@ -1,6 +1,7 @@
 // Catalogos de Sucursales y Firmantes de Agropecuaria. Se guardan en
 // localStorage con prefijo agro_ para que se sincronicen entre dispositivos
 // (ver src/services/agroSync.ts). El Certificado de calidad usa ambos.
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 export interface Sucursal {
   id: string
@@ -42,7 +43,7 @@ export function cargarSucursales(): Sucursal[] {
 }
 
 export function guardarSucursales(lista: Sucursal[]): void {
-  localStorage.setItem(SUCURSALES_KEY, JSON.stringify(lista))
+  guardarLocal(SUCURSALES_KEY, JSON.stringify(lista))
 }
 
 // Catalogo base de sucursales de SUPERTIENDAS Y DROGUERIA OLIMPICA. Se versiona
@@ -240,5 +241,5 @@ export function cargarFirmantes(): Firmante[] {
 }
 
 export function guardarFirmantes(lista: Firmante[]): void {
-  localStorage.setItem(FIRMANTES_KEY, JSON.stringify(lista))
+  guardarLocal(FIRMANTES_KEY, JSON.stringify(lista))
 }

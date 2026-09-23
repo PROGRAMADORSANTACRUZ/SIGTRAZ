@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 // Fuente unica de los catalogos de agropecuaria: la pagina Datos guarda las
 // ediciones aqui (localStorage) y los selectores las leen con useCatalogo.
@@ -20,7 +21,7 @@ export function leerCatalogo(titulo: string, semilla: string[]): string[] {
 }
 
 export function guardarCatalogo(titulo: string, items: string[]) {
-  localStorage.setItem(clave(titulo), JSON.stringify(items))
+  guardarLocal(clave(titulo), JSON.stringify(items))
   window.dispatchEvent(new Event(EVENTO))
 }
 

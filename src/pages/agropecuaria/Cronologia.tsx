@@ -7,6 +7,7 @@ import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
 import { generarCronologiaDocx } from './cronologiaDocx'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_cronologia'
 const ANTEMORTEM_KEY = 'agro_antemortem'
@@ -92,7 +93,7 @@ export function Cronologia() {
   const { usuario } = useAuth()
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(registros))
+    guardarLocal(STORAGE_KEY, JSON.stringify(registros))
   }, [registros])
 
   // Una fila por lote/dia. Cada grupo agrupa todos sus ganchos.

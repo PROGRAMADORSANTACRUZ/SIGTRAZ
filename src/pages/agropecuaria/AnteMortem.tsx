@@ -7,6 +7,7 @@ import { ModalEliminar } from '../../components/ModalEliminar'
 import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 const FIRMA_DEFECTO = 'CLAUDIA DE LOS REYES'
 const STORAGE_KEY = 'agro_antemortem'
@@ -240,7 +241,7 @@ export function AnteMortem() {
   useEffect(() => {
     const nuevo = JSON.stringify(registros)
     if (localStorage.getItem(STORAGE_KEY) === nuevo) return
-    localStorage.setItem(STORAGE_KEY, nuevo)
+    guardarLocal(STORAGE_KEY, nuevo)
   }, [registros])
 
   // Mantiene la lista en sincronía con otras pestañas del mismo navegador. Sin

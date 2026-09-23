@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 export interface HallazgoCertificado {
   organo: string
@@ -139,7 +140,7 @@ function leerInicial(): CertificadoDecomiso[] {
 }
 
 function persistir() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(certificados))
+  guardarLocal(STORAGE_KEY, JSON.stringify(certificados))
   listeners.forEach((l) => l())
 }
 

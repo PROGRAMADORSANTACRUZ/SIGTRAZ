@@ -13,6 +13,7 @@ import {
 } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
 import { cargarSucursales } from './sucursalesStore'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_certificados'
 const CURVA_KEY = 'agro_curva_canales'
@@ -1110,7 +1111,7 @@ export function Certificado() {
   }
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(certificados))
+    guardarLocal(STORAGE_KEY, JSON.stringify(certificados))
   }, [certificados])
 
   function actualizar<K extends keyof Omit<Certificado, 'id'>>(

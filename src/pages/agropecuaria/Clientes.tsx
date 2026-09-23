@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { inputClase } from '../../components/ui'
 import { clientesSeed, type ClienteAgro } from './clientesSeed'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_clientes'
 
@@ -26,7 +27,7 @@ export function Clientes() {
 
   function persistir(lista: ClienteAgro[]) {
     setClientes(lista)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lista))
+    guardarLocal(STORAGE_KEY, JSON.stringify(lista))
   }
 
   const filtrados = useMemo(() => {

@@ -17,6 +17,7 @@ import {
   mesDe,
   siguienteConsecutivo,
 } from './certificadosPorcinoStore'
+import { guardarLocal } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_posmortem_porcino'
 const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
@@ -122,7 +123,7 @@ export function PosMortemPorcino() {
   const patologias = useCatalogo('Patologias', patologiasSeed)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(registros))
+    guardarLocal(STORAGE_KEY, JSON.stringify(registros))
   }, [registros])
 
   // El aviso del certificado desaparece solo tras unos segundos.

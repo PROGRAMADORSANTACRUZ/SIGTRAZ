@@ -12,6 +12,7 @@ import {
 import { generarCertificadoDocx } from './certificadoDocx'
 import { datosFirmante } from './firmante'
 import { useAuth } from '../../store/AuthContext'
+import { comprimirDataUrl } from '../../utils/imagenes'
 
 const ESTILOS_DOC =
   `*{box-sizing:border-box;}` +
@@ -368,8 +369,8 @@ export function CertificadoDecomisoPorcino() {
     )
     imagenes.forEach((archivo) => {
       const lector = new FileReader()
-      lector.onload = () => {
-        const url = String(lector.result)
+      lector.onload = async () => {
+        const url = await comprimirDataUrl(String(lector.result))
         setForm((f) => (f ? { ...f, imagenes: [...f.imagenes, url] } : f))
       }
       lector.readAsDataURL(archivo)
@@ -382,7 +383,7 @@ export function CertificadoDecomisoPorcino() {
     )
   }
 
-  function capturarFoto() {
+  async function capturarFoto() {
     const video = videoRef.current
     if (!video || !video.videoWidth) return
     const canvas = document.createElement('canvas')
@@ -391,7 +392,7 @@ export function CertificadoDecomisoPorcino() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.drawImage(video, 0, 0)
-    const url = canvas.toDataURL('image/jpeg', 0.85)
+    const url = await comprimirDataUrl(canvas.toDataURL('image/jpeg', 0.85))
     setForm((f) => (f ? { ...f, imagenes: [...f.imagenes, url] } : f))
   }
 
