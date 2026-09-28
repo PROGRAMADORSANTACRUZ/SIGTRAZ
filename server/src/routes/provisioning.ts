@@ -8,7 +8,7 @@ import { ROLES, type RolUsuario } from '../types.js'
 // La Suite es la fuente de verdad; se autentica con el secreto compartido SSO.
 export const provisioningRouter = Router()
 
-function requireSecret(req: Request, res: Response, next: NextFunction): void {
+export function requireSecret(req: Request, res: Response, next: NextFunction): void {
   const secret = config.sso.sharedSecret
   const provided = req.headers['x-sso-secret']
   if (!secret || provided !== secret) {

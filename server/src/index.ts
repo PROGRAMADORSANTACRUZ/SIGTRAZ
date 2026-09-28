@@ -6,7 +6,7 @@ import { requireAuth, soloAdminElimina } from './auth.js'
 import { cargarScopePdv } from './scope.js'
 import { query } from './db.js'
 import { authRouter } from './routes/auth.js'
-import { provisioningRouter } from './routes/provisioning.js'
+import { provisioningRouter, requireSecret } from './routes/provisioning.js'
 import { accionesRouter } from './routes/acciones.js'
 import { activosRouter } from './routes/activos.js'
 import { formacionesRouter } from './routes/formaciones.js'
@@ -96,6 +96,35 @@ app.get('/api/health', async (_req, res) => {
     res.json({ status: 'ok', db: 'conectado' })
   } catch {
     res.status(503).json({ status: 'degradado', db: 'sin conexion' })
+  }
+})
+
+// Resumen ejecutivo para Estadísticas generales de la Suite (secreto SSO).
+app.get('/api/resumen-ejecutivo', requireSecret, async (_req, res, next) => {
+  try {
+    const [r] = await query<Record<string, string>>(`
+      WITH d AS (SELECT (now() AT TIME ZONE 'America/Bogota')::date AS hoy)
+      SELECT
+        (SELECT COUNT(*) FROM entradas, d WHERE entradas.fecha::date = d.hoy) AS entradas_hoy,
+        (SELECT COUNT(*) FROM salidas, d WHERE salidas.fecha = d.hoy) AS salidas_hoy,
+        (SELECT COUNT(*) FROM devoluciones, d WHERE devoluciones.fecha = d.hoy) AS devoluciones_hoy,
+        (SELECT COUNT(*) FROM acciones WHERE estado IN ('Pendiente','En progreso')) AS acciones_abiertas,
+        (SELECT COUNT(*) FROM acciones, d WHERE estado IN ('Pendiente','En progreso') AND fecha_vencimiento < d.hoy) AS acciones_vencidas
+    `)
+    const n = (k: string) => Number(r?.[k]) || 0
+    res.json({
+      metrics: [
+        { key: 'entradas_hoy', label: 'Entradas hoy', value: n('entradas_hoy') },
+        { key: 'salidas_hoy', label: 'Salidas hoy', value: n('salidas_hoy') },
+        { key: 'devoluciones_hoy', label: 'Devoluciones hoy', value: n('devoluciones_hoy') },
+        {
+          key: 'acciones_abiertas', label: 'Acciones abiertas', value: n('acciones_abiertas'),
+          hint: `${n('acciones_vencidas')} vencidas`, tone: n('acciones_vencidas') > 0 ? 'warn' : 'default',
+        },
+      ],
+    })
+  } catch (err) {
+    next(err)
   }
 })
 
