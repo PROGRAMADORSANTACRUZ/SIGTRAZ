@@ -1,5 +1,6 @@
+import { almacenamientoDatos } from '../services/almacenamientoDatos'
 // Vista de dispositivo: permite ver la app dentro de un marco de tablet o
-// celular (Escritorio = normal). Se guarda en localStorage.
+// celular (Escritorio = normal). Se guarda en almacenamientoDatos.
 const CLAVE = 'sigtraz_vista'
 
 export type Vista = 'escritorio' | 'tablet' | 'celular'
@@ -18,12 +19,12 @@ export const DIMENSIONES: Record<'tablet' | 'celular', DimensionVista> = {
 }
 
 export function vistaGuardada(): Vista {
-  const v = localStorage.getItem(CLAVE)
+  const v = almacenamientoDatos.getItem(CLAVE)
   return v === 'tablet' || v === 'celular' ? v : 'escritorio'
 }
 
 export function guardarVista(vista: Vista): void {
-  localStorage.setItem(CLAVE, vista)
+  almacenamientoDatos.setItem(CLAVE, vista)
 }
 
 // True cuando la app corre dentro de un iframe (la vista previa de dispositivo).

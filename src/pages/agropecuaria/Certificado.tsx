@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useState } from 'react'
 import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
@@ -13,7 +14,7 @@ import {
 } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
 import { cargarSucursales } from './sucursalesStore'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_certificados'
 const CURVA_KEY = 'agro_curva_canales'
@@ -221,7 +222,7 @@ function graficoCurvaSVG(o: OrdenCurva): string {
 
 function cargarCurvas(): OrdenCurva[] {
   try {
-    const raw = localStorage.getItem(CURVA_KEY)
+    const raw = almacenamientoDatos.getItem(CURVA_KEY)
     if (raw) return JSON.parse(raw) as OrdenCurva[]
   } catch {
     // sin curvas registradas
@@ -350,7 +351,7 @@ function infoGuiaAnteMortem(lote: string, fecha: string) {
   if (!l) return null
   let ante: Array<Record<string, unknown>> = []
   try {
-    ante = JSON.parse(localStorage.getItem('agro_antemortem') || '[]')
+    ante = JSON.parse(almacenamientoDatos.getItem('agro_antemortem') || '[]')
   } catch {
     ante = []
   }
@@ -803,7 +804,7 @@ export function Certificado() {
   const departamentos = useCatalogo('Departamentos', departamentosSeed)
   const [certificados, setCertificados] = useState<Certificado[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      return JSON.parse(almacenamientoDatos.getItem(STORAGE_KEY) || '[]')
     } catch {
       return []
     }
@@ -976,13 +977,13 @@ export function Certificado() {
   > {
     let pos: { fecha?: string; loteSacrificio?: string }[] = []
     try {
-      pos = JSON.parse(localStorage.getItem('agro_posmortem') || '[]')
+      pos = JSON.parse(almacenamientoDatos.getItem('agro_posmortem') || '[]')
     } catch {
       pos = []
     }
     let ante: { fechaBeneficio?: string; loteSacrificio?: string }[] = []
     try {
-      ante = JSON.parse(localStorage.getItem('agro_antemortem') || '[]')
+      ante = JSON.parse(almacenamientoDatos.getItem('agro_antemortem') || '[]')
     } catch {
       ante = []
     }
@@ -1111,7 +1112,7 @@ export function Certificado() {
   }
 
   useEffect(() => {
-    guardarLocal(STORAGE_KEY, JSON.stringify(certificados))
+    guardarDatos(STORAGE_KEY, JSON.stringify(certificados))
   }, [certificados])
 
   function actualizar<K extends keyof Omit<Certificado, 'id'>>(

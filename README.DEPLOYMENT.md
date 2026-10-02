@@ -2,6 +2,16 @@
 
 Todos los archivos necesarios para deployar SIGTRAZ en Dokploy están listos.
 
+## Persistencia en base de datos
+
+- Desplegar frontend y backend juntos: el guardado de Agropecuaria utiliza `agro_kv` en PostgreSQL, sin escribir nuevos datos en `localStorage`.
+- La tabla `agro_kv` existente no necesita cambios. Las preferencias de tema, vista, punto de venta y bascula se guardan por usuario.
+- Al iniciar sesion se cargan los datos del servidor. Si falla la carga, los formularios permanecen bloqueados y se ofrece reintentar.
+- Los datos antiguos del navegador que no existen en el servidor se migran y solo se eliminan del navegador tras confirmar el guardado. Si difieren de datos ya existentes, se conserva la copia antigua y se ofrece descargarla, sin sobrescribir la base de datos.
+- Un aviso identifica guardados pendientes o fallidos y permite reintentar o descargar una copia de recuperacion. No cerrar la ventana mientras existan cambios pendientes.
+- Si otro equipo modifico los mismos datos, el servidor rechaza la sobrescritura. Descargar los cambios pendientes antes de recargar y reconciliarlos con la version actual.
+- Pruebas de persistencia: `npm test`. Las pruebas usan la API y consultas simuladas; comprobar tambien el entorno PostgreSQL desplegado.
+
 ## 📦 Archivos Generados
 
 ### 1. **Dockerfile.frontend** 

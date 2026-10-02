@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { Campo, inputClase } from '../../components/ui'
@@ -7,7 +8,7 @@ import { ModalEliminar } from '../../components/ModalEliminar'
 import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 const FIRMA_DEFECTO = 'CLAUDIA DE LOS REYES'
 const STORAGE_KEY = 'agro_antemortem_porcino'
@@ -197,7 +198,7 @@ export function AnteMortemPorcino() {
   const dictamenes2 = useCatalogo('Dictamen 2', dictamen2Seed)
   const [registros, setRegistros] = useState<RegistroAnteMortem[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      return JSON.parse(almacenamientoDatos.getItem(STORAGE_KEY) || '[]')
     } catch {
       return []
     }
@@ -231,17 +232,12 @@ export function AnteMortemPorcino() {
     usuario?.email ||
     FIRMA_DEFECTO
 
-  // Persiste en localStorage; agroSync refleja estos datos en el servidor para
-  // compartirlos entre dispositivos (PC <-> celular).
   useEffect(() => {
     const nuevo = JSON.stringify(registros)
-    if (localStorage.getItem(STORAGE_KEY) === nuevo) return
-    guardarLocal(STORAGE_KEY, nuevo)
+    if (almacenamientoDatos.getItem(STORAGE_KEY) === nuevo) return
+    guardarDatos(STORAGE_KEY, nuevo)
   }, [registros])
 
-  // Mantiene la lista en sincronía con otras pestañas del mismo navegador. Sin
-  // esto, una pestaña con estado viejo (p. ej. sin los lotes recién cargados en
-  // otra pestaña) sobrescribiría localStorage al guardar y borraría esos datos.
   useEffect(() => {
     function sincronizar(e: StorageEvent) {
       if (e.key !== STORAGE_KEY) return

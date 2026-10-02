@@ -8,8 +8,6 @@ import { EntradasProvider } from './store/EntradasContext'
 import { BasculaProvider } from './store/BasculaContext'
 import { instalarMayusculasGlobal } from './utils/mayusculas'
 import { aplicarTemaInicial } from './utils/tema'
-import { instalarSyncAgro, precargarAgro } from './services/agroSync'
-import { corregirGrafiaPrincipal } from './pages/agropecuaria/sucursalesStore'
 import './index.css'
 
 // Fuerza mayusculas en todos los campos de texto que el usuario digite.
@@ -17,9 +15,6 @@ instalarMayusculasGlobal()
 
 // Aplica el tema (claro/oscuro) guardado antes de renderizar para evitar parpadeo.
 aplicarTemaInicial()
-
-// Sincroniza los modulos de Agropecuaria entre dispositivos (PC <-> celular).
-instalarSyncAgro()
 
 function montar() {
   createRoot(document.getElementById('root')!).render(
@@ -37,10 +32,4 @@ function montar() {
   )
 }
 
-// Precarga los datos de Agropecuaria desde el servidor antes de montar la app,
-// para que las paginas lean sus estados iniciales ya sincronizados.
-precargarAgro()
-  .then(() => {
-    corregirGrafiaPrincipal()
-  })
-  .finally(montar)
+montar()

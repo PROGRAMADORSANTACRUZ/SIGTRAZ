@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../services/almacenamientoDatos'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ExcelJS from 'exceljs'
@@ -352,7 +353,7 @@ export function Entradas() {
     if (!num) return
     let lista: Array<Record<string, unknown>> = []
     try {
-      lista = JSON.parse(localStorage.getItem('agro_certificados') || '[]')
+      lista = JSON.parse(almacenamientoDatos.getItem('agro_certificados') || '[]')
     } catch {
       lista = []
     }

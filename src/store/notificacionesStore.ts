@@ -1,6 +1,7 @@
+import { almacenamientoDatos } from '../services/almacenamientoDatos'
 // Notificaciones del dashboard de Carnes Santacruz derivadas de los
 // certificados de calidad emitidos en Agropecuaria. Se leen directamente de la
-// clave `agro_certificados` (sincronizada entre dispositivos por agroSync), de
+// clave `agro_certificados` cargada desde la base de datos, de
 // modo que cualquier certificado guardado genera un aviso hasta marcarlo leido.
 // Los IDs leidos se guardan en `agro_certificados_leidos` (tambien agro_* para
 // que se sincronicen).
@@ -22,7 +23,7 @@ const USADOS_KEY = 'agro_certificados_usados'
 
 function cargarLeidos(): string[] {
   try {
-    const raw = localStorage.getItem(LEIDOS_KEY)
+    const raw = almacenamientoDatos.getItem(LEIDOS_KEY)
     if (raw) return JSON.parse(raw) as string[]
   } catch {
     // sin registros
@@ -33,7 +34,7 @@ function cargarLeidos(): string[] {
 // Numeros de certificado ya usados en una entrada (para mostrar "OK").
 function cargarUsados(): string[] {
   try {
-    const raw = localStorage.getItem(USADOS_KEY)
+    const raw = almacenamientoDatos.getItem(USADOS_KEY)
     if (raw) return JSON.parse(raw) as string[]
   } catch {
     // sin registros
@@ -51,7 +52,7 @@ interface CertificadoMin {
 export function cargarNotificaciones(): Notificacion[] {
   let certs: CertificadoMin[] = []
   try {
-    const raw = localStorage.getItem(CERT_KEY)
+    const raw = almacenamientoDatos.getItem(CERT_KEY)
     if (raw) certs = JSON.parse(raw) as CertificadoMin[]
   } catch {
     certs = []
@@ -77,7 +78,7 @@ export function marcarLeida(id: string): Notificacion[] {
   const leidos = cargarLeidos()
   if (!leidos.includes(id)) {
     leidos.push(id)
-    localStorage.setItem(LEIDOS_KEY, JSON.stringify(leidos))
+    almacenamientoDatos.setItem(LEIDOS_KEY, JSON.stringify(leidos))
   }
   return cargarNotificaciones()
 }
@@ -89,7 +90,7 @@ export function marcarUsadaPorNumero(numero: string): Notificacion[] {
     const usados = cargarUsados()
     if (!usados.some((n) => n.trim().toUpperCase() === num)) {
       usados.push(num)
-      localStorage.setItem(USADOS_KEY, JSON.stringify(usados))
+      almacenamientoDatos.setItem(USADOS_KEY, JSON.stringify(usados))
     }
   }
   return cargarNotificaciones()

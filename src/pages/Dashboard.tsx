@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../services/almacenamientoDatos'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
@@ -122,7 +123,7 @@ function CertificadosPorPunto() {
   useEffect(() => {
     const leer = () => {
       try {
-        const raw = localStorage.getItem('agro_certificados')
+        const raw = almacenamientoDatos.getItem('agro_certificados')
         setCerts(raw ? (JSON.parse(raw) as CertificadoPunto[]) : [])
       } catch {
         setCerts([])

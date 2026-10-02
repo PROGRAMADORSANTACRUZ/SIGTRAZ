@@ -14,6 +14,7 @@ import {
 } from '../services/api'
 import type { PuntoVenta } from '../types/trazabilidad'
 import { useAuth } from './AuthContext'
+import { esperarGuardados } from '../services/almacenamientoDatos'
 
 interface PuntoVentaContextValue {
   // Puntos de venta que el usuario puede ver/usar.
@@ -79,11 +80,16 @@ export function PuntoVentaProvider({ children }: { children: ReactNode }) {
     }
   }, [cargando, autenticado, disponibles, esAdmin, activo])
 
-  const cambiar = useCallback((id: number | null) => {
-    setPuntoVentaActivo(id)
-    setActivo(id)
-    // Recarga para que todas las pantallas vuelvan a pedir datos del PDV.
-    window.location.reload()
+  const cambiar = useCallback(async (id: number | null) => {
+    try {
+      await esperarGuardados()
+      setPuntoVentaActivo(id)
+      await esperarGuardados()
+      setActivo(id)
+      window.location.reload()
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo cambiar el punto de venta')
+    }
   }, [])
 
   const value = useMemo(

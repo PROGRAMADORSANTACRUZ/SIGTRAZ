@@ -1,8 +1,9 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useState } from 'react'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 // Fuente unica de los catalogos de agropecuaria: la pagina Datos guarda las
-// ediciones aqui (localStorage) y los selectores las leen con useCatalogo.
+// ediciones aqui (almacenamientoDatos) y los selectores las leen con useCatalogo.
 
 const EVENTO = 'agro-catalogos-actualizados'
 
@@ -12,16 +13,16 @@ function clave(titulo: string) {
 
 export function leerCatalogo(titulo: string, semilla: string[]): string[] {
   try {
-    const guardado = localStorage.getItem(clave(titulo))
+    const guardado = almacenamientoDatos.getItem(clave(titulo))
     if (guardado) return JSON.parse(guardado) as string[]
   } catch {
-    // valor invalido en localStorage, se usa la semilla
+    // valor invalido en almacenamientoDatos, se usa la semilla
   }
   return semilla
 }
 
 export function guardarCatalogo(titulo: string, items: string[]) {
-  guardarLocal(clave(titulo), JSON.stringify(items))
+  guardarDatos(clave(titulo), JSON.stringify(items))
   window.dispatchEvent(new Event(EVENTO))
 }
 

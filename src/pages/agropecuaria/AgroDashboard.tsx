@@ -1,8 +1,9 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useMemo, useState } from 'react'
 
 function leerRegistros<T = Record<string, unknown>>(clave: string): T[] {
   try {
-    const datos = JSON.parse(localStorage.getItem(clave) || '[]')
+    const datos = JSON.parse(almacenamientoDatos.getItem(clave) || '[]')
     return Array.isArray(datos) ? (datos as T[]) : []
   } catch {
     return []

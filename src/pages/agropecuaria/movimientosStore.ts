@@ -1,5 +1,6 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useSyncExternalStore } from 'react'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 export interface CambioCampo {
   campo: string
@@ -24,7 +25,7 @@ const STORAGE_KEY = 'agro_movimientos'
 
 function leerInicial(): MovimientoLog[] {
   try {
-    return JSON.parse(localStorage.getItem('agro_movimientos') || '[]')
+    return JSON.parse(almacenamientoDatos.getItem('agro_movimientos') || '[]')
   } catch {
     return []
   }
@@ -41,7 +42,7 @@ export function agregarMovimiento(
     },
     ...movimientos,
   ]
-  guardarLocal(STORAGE_KEY, JSON.stringify(movimientos))
+  guardarDatos(STORAGE_KEY, JSON.stringify(movimientos))
   listeners.forEach((l) => l())
 }
 

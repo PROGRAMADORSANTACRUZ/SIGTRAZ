@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useMemo, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { Campo, inputClase } from '../../components/ui'
@@ -7,7 +8,7 @@ import { api } from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
 import { generarCronologiaDocx } from './cronologiaDocx'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_cronologia'
 const ANTEMORTEM_KEY = 'agro_antemortem'
@@ -60,7 +61,7 @@ const ETIQUETAS: Record<keyof Omit<RegistroCronologia, 'id'>, string> = {
 export function Cronologia() {
   const [registros, setRegistros] = useState<RegistroCronologia[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      return JSON.parse(almacenamientoDatos.getItem(STORAGE_KEY) || '[]')
     } catch {
       return []
     }
@@ -93,7 +94,7 @@ export function Cronologia() {
   const { usuario } = useAuth()
 
   useEffect(() => {
-    guardarLocal(STORAGE_KEY, JSON.stringify(registros))
+    guardarDatos(STORAGE_KEY, JSON.stringify(registros))
   }, [registros])
 
   // Una fila por lote/dia. Cada grupo agrupa todos sus ganchos.
@@ -150,7 +151,7 @@ export function Cronologia() {
   const firmadores = useMemo(() => {
     try {
       const ante: { fechaIngreso?: string; firmador?: string }[] = JSON.parse(
-        localStorage.getItem(ANTEMORTEM_KEY) || '[]',
+        almacenamientoDatos.getItem(ANTEMORTEM_KEY) || '[]',
       )
       return [
         ...new Set(
@@ -173,7 +174,7 @@ export function Cronologia() {
         fechaIngreso?: string
         firmador?: string
         loteSacrificio?: string
-      }[] = JSON.parse(localStorage.getItem(ANTEMORTEM_KEY) || '[]')
+      }[] = JSON.parse(almacenamientoDatos.getItem(ANTEMORTEM_KEY) || '[]')
       const usados = new Set(
         registros
           .filter((r) => (r.fecha || '') === form.fecha)
@@ -208,7 +209,7 @@ export function Cronologia() {
         firmador?: string
         loteSacrificio?: string
         numeroGuia?: string
-      }[] = JSON.parse(localStorage.getItem(ANTEMORTEM_KEY) || '[]')
+      }[] = JSON.parse(almacenamientoDatos.getItem(ANTEMORTEM_KEY) || '[]')
       ante
         .filter(
           (r) =>

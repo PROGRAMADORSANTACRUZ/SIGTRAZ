@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useMemo, useState } from 'react'
 
 const STORAGE_KEY = 'agro_antemortem'
@@ -13,7 +14,7 @@ interface RegistroAnteMortem {
 
 function leerRegistros(): RegistroAnteMortem[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    return JSON.parse(almacenamientoDatos.getItem(STORAGE_KEY) || '[]')
   } catch {
     return []
   }

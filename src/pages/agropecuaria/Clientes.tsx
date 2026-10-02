@@ -1,13 +1,14 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useMemo, useState } from 'react'
 import { inputClase } from '../../components/ui'
 import { clientesSeed, type ClienteAgro } from './clientesSeed'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_clientes'
 
 function cargar(): ClienteAgro[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = almacenamientoDatos.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw) as ClienteAgro[]
   } catch {
     // ignora datos corruptos
@@ -27,7 +28,7 @@ export function Clientes() {
 
   function persistir(lista: ClienteAgro[]) {
     setClientes(lista)
-    guardarLocal(STORAGE_KEY, JSON.stringify(lista))
+    guardarDatos(STORAGE_KEY, JSON.stringify(lista))
   }
 
   const filtrados = useMemo(() => {

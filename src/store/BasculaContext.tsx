@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../services/almacenamientoDatos'
 import {
   createContext,
   useCallback,
@@ -46,7 +47,7 @@ export function BasculaProvider({ children }: { children: ReactNode }) {
   const [estable, setEstable] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [baudRate, setBaudRateState] = useState<number>(() => {
-    const g = Number(localStorage.getItem(BAUD_KEY))
+    const g = Number(almacenamientoDatos.getItem(BAUD_KEY))
     return Number.isFinite(g) && g > 0 ? g : 9600
   })
 
@@ -56,7 +57,7 @@ export function BasculaProvider({ children }: { children: ReactNode }) {
   const bufferRef = useRef('')
 
   function setBaudRate(n: number) {
-    localStorage.setItem(BAUD_KEY, String(n))
+    almacenamientoDatos.setItem(BAUD_KEY, String(n))
     setBaudRateState(n)
   }
 

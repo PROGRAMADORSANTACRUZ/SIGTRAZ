@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useMemo, useState } from 'react'
 import { inputClase } from '../../components/ui'
 import { SelectorBuscable } from '../../components/SelectorBuscable'
@@ -38,10 +39,10 @@ export function Sucursales() {
     guardarSucursales(lista)
   }
 
-  // Siembra el catalogo base de Olimpica una sola vez por navegador.
+  // Siembra el catalogo base de Olimpica una sola vez en la base de datos.
   useEffect(() => {
-    if (localStorage.getItem('sigtraz_seed_olimpica_v1')) return
-    localStorage.setItem('sigtraz_seed_olimpica_v1', '1')
+    if (almacenamientoDatos.getItem('sigtraz_seed_olimpica_v1')) return
+    almacenamientoDatos.setItem('sigtraz_seed_olimpica_v1', '1')
     const { lista, agregadas } = asegurarBaseOlimpica(cargarSucursales())
     if (agregadas > 0) {
       setSucursales(lista)
@@ -51,8 +52,8 @@ export function Sucursales() {
 
   // Amarra las sucursales de Carnes Santacruz a su principal una sola vez.
   useEffect(() => {
-    if (localStorage.getItem('sigtraz_seed_principal_carnes_v1')) return
-    localStorage.setItem('sigtraz_seed_principal_carnes_v1', '1')
+    if (almacenamientoDatos.getItem('sigtraz_seed_principal_carnes_v1')) return
+    almacenamientoDatos.setItem('sigtraz_seed_principal_carnes_v1', '1')
     const { lista, cambios } = asegurarPrincipalCarnes(cargarSucursales())
     if (cambios > 0) {
       setSucursales(lista)

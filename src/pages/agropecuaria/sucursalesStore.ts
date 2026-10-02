@@ -1,7 +1,7 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 // Catalogos de Sucursales y Firmantes de Agropecuaria. Se guardan en
-// localStorage con prefijo agro_ para que se sincronicen entre dispositivos
-// (ver src/services/agroSync.ts). El Certificado de calidad usa ambos.
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+// La base de datos comparte estos catalogos entre dispositivos.
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 export interface Sucursal {
   id: string
@@ -26,7 +26,7 @@ const FIRMANTES_KEY = 'agro_firmantes'
 
 export function cargarSucursales(): Sucursal[] {
   try {
-    const raw = localStorage.getItem(SUCURSALES_KEY)
+    const raw = almacenamientoDatos.getItem(SUCURSALES_KEY)
     if (raw) {
       const lista = JSON.parse(raw) as Sucursal[]
       return lista.map((s) => ({
@@ -43,7 +43,7 @@ export function cargarSucursales(): Sucursal[] {
 }
 
 export function guardarSucursales(lista: Sucursal[]): void {
-  guardarLocal(SUCURSALES_KEY, JSON.stringify(lista))
+  guardarDatos(SUCURSALES_KEY, JSON.stringify(lista))
 }
 
 // Catalogo base de sucursales de SUPERTIENDAS Y DROGUERIA OLIMPICA. Se versiona
@@ -152,16 +152,15 @@ const PRINCIPAL_CARNES_ANTIGUO = 'PRINCIAL CARNES SANTACRUZ'
 // Reemplaza la grafia antigua "PRINCIAL" por "PRINCIPAL" en todos los datos de
 // Agropecuaria ya guardados (sucursales, curvas, certificados, etc.). Es
 // idempotente: solo reescribe las claves que realmente cambian. Como corre
-// despues de precargarAgro y agroSync ya esta instalado, la correccion tambien
-// se envia al servidor.
+// despues de cargar la base de datos, la correccion tambien se guarda alli.
 export function corregirGrafiaPrincipal(): number {
   let corregidas = 0
-  for (let i = 0; i < localStorage.length; i++) {
-    const clave = localStorage.key(i)
+  for (let i = 0; i < almacenamientoDatos.length; i++) {
+    const clave = almacenamientoDatos.key(i)
     if (!clave || !clave.startsWith('agro_')) continue
-    const valor = localStorage.getItem(clave)
+    const valor = almacenamientoDatos.getItem(clave)
     if (!valor || !valor.includes(PRINCIPAL_CARNES_ANTIGUO)) continue
-    localStorage.setItem(clave, valor.split(PRINCIPAL_CARNES_ANTIGUO).join(PRINCIPAL_CARNES))
+    almacenamientoDatos.setItem(clave, valor.split(PRINCIPAL_CARNES_ANTIGUO).join(PRINCIPAL_CARNES))
     corregidas++
   }
   return corregidas
@@ -232,7 +231,7 @@ export function asegurarPrincipalCarnes(actual: Sucursal[]): {
 
 export function cargarFirmantes(): Firmante[] {
   try {
-    const raw = localStorage.getItem(FIRMANTES_KEY)
+    const raw = almacenamientoDatos.getItem(FIRMANTES_KEY)
     if (raw) return JSON.parse(raw) as Firmante[]
   } catch {
     // datos corruptos: se ignora
@@ -241,5 +240,5 @@ export function cargarFirmantes(): Firmante[] {
 }
 
 export function guardarFirmantes(lista: Firmante[]): void {
-  guardarLocal(FIRMANTES_KEY, JSON.stringify(lista))
+  guardarDatos(FIRMANTES_KEY, JSON.stringify(lista))
 }

@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../store/AuthContext'
 import { agregarMovimiento } from './movimientosStore'
@@ -8,7 +9,7 @@ import { api } from '../../services/api'
 import { cuartosFriosSeed } from './datosCatalogos'
 import { useCatalogo } from './catalogosStore'
 import { cargarSucursales } from './sucursalesStore'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_curva_canales'
 const ANTEMORTEM_KEY = 'agro_antemortem'
@@ -24,7 +25,7 @@ interface AnteMortemLite {
 
 function cargarAnteMortem(): AnteMortemLite[] {
   try {
-    const raw = localStorage.getItem(ANTEMORTEM_KEY)
+    const raw = almacenamientoDatos.getItem(ANTEMORTEM_KEY)
     if (raw) return JSON.parse(raw) as AnteMortemLite[]
   } catch {
     // sin registros
@@ -185,7 +186,7 @@ export function CurvaTemperaturaCanales() {
   const [ordenes, setOrdenes] = useState<Orden[]>(() => {
     try {
       const guardadas = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || '[]',
+        almacenamientoDatos.getItem(STORAGE_KEY) || '[]',
       ) as Orden[]
       return Array.isArray(guardadas) ? guardadas.map(migrarOrden) : []
     } catch {
@@ -288,7 +289,7 @@ export function CurvaTemperaturaCanales() {
     : []
 
   useEffect(() => {
-    guardarLocal(STORAGE_KEY, JSON.stringify(ordenes))
+    guardarDatos(STORAGE_KEY, JSON.stringify(ordenes))
   }, [ordenes])
 
   function actualizar<K extends keyof Omit<Orden, 'id' | 'canales' | 'mediciones'>>(

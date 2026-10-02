@@ -1,4 +1,4 @@
-// Redimensiona/comprime una imagen (dataURL) para no llenar localStorage.
+// Redimensiona/comprime una imagen (dataURL) para reducir su almacenamiento.
 export function comprimirDataUrl(
   dataUrl: string,
   maxLado = 1000,

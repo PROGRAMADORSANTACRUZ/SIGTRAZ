@@ -1,5 +1,6 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useSyncExternalStore } from 'react'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 export interface HallazgoCertificado {
   organo: string
@@ -133,14 +134,14 @@ const listeners = new Set<() => void>()
 
 function leerInicial(): CertificadoDecomiso[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    return JSON.parse(almacenamientoDatos.getItem(STORAGE_KEY) || '[]')
   } catch {
     return []
   }
 }
 
 function persistir() {
-  guardarLocal(STORAGE_KEY, JSON.stringify(certificados))
+  guardarDatos(STORAGE_KEY, JSON.stringify(certificados))
   listeners.forEach((l) => l())
 }
 

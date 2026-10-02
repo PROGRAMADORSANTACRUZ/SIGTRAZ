@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from '../../services/almacenamientoDatos'
 import { useEffect, useMemo, useState } from 'react'
 import ExcelJS from 'exceljs'
 import { Campo, inputClase } from '../../components/ui'
@@ -17,7 +18,7 @@ import {
   mesDe,
   siguienteConsecutivo,
 } from './certificadosPorcinoStore'
-import { guardarLocal } from '../../utils/almacenamientoSeguro'
+import { guardarDatos } from '../../utils/almacenamientoSeguro'
 
 const STORAGE_KEY = 'agro_posmortem_porcino'
 const ANTEMORTEM_KEY = 'agro_antemortem_porcino'
@@ -89,7 +90,7 @@ const ETIQUETAS: Record<keyof Omit<RegistroPosMortem, 'id'>, string> = {
 export function PosMortemPorcino() {
   const [registros, setRegistros] = useState<RegistroPosMortem[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      return JSON.parse(almacenamientoDatos.getItem(STORAGE_KEY) || '[]')
     } catch {
       return []
     }
@@ -123,7 +124,7 @@ export function PosMortemPorcino() {
   const patologias = useCatalogo('Patologias', patologiasSeed)
 
   useEffect(() => {
-    guardarLocal(STORAGE_KEY, JSON.stringify(registros))
+    guardarDatos(STORAGE_KEY, JSON.stringify(registros))
   }, [registros])
 
   // El aviso del certificado desaparece solo tras unos segundos.
@@ -189,7 +190,7 @@ export function PosMortemPorcino() {
   // Registros de Ante Mortem para autocompletar y filtrar por dia.
   const anteRegistros = useMemo<Record<string, string>[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem(ANTEMORTEM_KEY) || '[]')
+      return JSON.parse(almacenamientoDatos.getItem(ANTEMORTEM_KEY) || '[]')
     } catch {
       return []
     }

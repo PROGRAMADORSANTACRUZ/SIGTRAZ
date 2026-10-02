@@ -1,3 +1,4 @@
+import { almacenamientoDatos } from './almacenamientoDatos'
 import type {
   Accion,
   Acondicionamiento,
@@ -228,9 +229,7 @@ export interface LoginResponse {
   usuario: Usuario
 }
 
-// Almacen clave-valor para sincronizar los modulos de Agropecuaria entre
-// dispositivos. Cada clave de localStorage con prefijo agro_ (o de catalogo)
-// se refleja como una fila en el servidor.
+// Almacen clave-valor persistido en PostgreSQL.
 export interface AgroKv {
   clave: string
   valor: unknown
@@ -239,7 +238,7 @@ export interface AgroKv {
 // El token de sesion ya no se guarda en localStorage: viaja en una cookie
 // httpOnly que el navegador envia solo, invisible para el JS de la pagina.
 // Este flag en memoria (se pierde al recargar) solo sirve para que otros
-// modulos (agroSync) sepan si hay sesion sin poder leer la cookie.
+// modulos sepan si hay sesion sin poder leer la cookie.
 let autenticado = false
 
 export function estaAutenticado(): boolean {
@@ -255,12 +254,13 @@ export const PDV_KEY = 'sigtraz_pdv'
 // Punto de venta activo (id) elegido en la barra superior. Se envia en cada
 // peticion para que el backend filtre los datos por ese punto de venta.
 export function getPuntoVentaActivo(): string | null {
-  return localStorage.getItem(PDV_KEY)
+  const valor = almacenamientoDatos.getItem(PDV_KEY)
+  return valor === 'null' ? null : valor
 }
 
 export function setPuntoVentaActivo(id: string | number | null): void {
-  if (id === null || id === '') localStorage.removeItem(PDV_KEY)
-  else localStorage.setItem(PDV_KEY, String(id))
+  if (id === null || id === '') almacenamientoDatos.removeItem(PDV_KEY)
+  else almacenamientoDatos.setItem(PDV_KEY, String(id))
 }
 
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
@@ -930,10 +930,10 @@ export const api = {
     }),
 
   getAgroKv: () => pedir<AgroKv[]>('/agro-kv'),
-  putAgroKv: (clave: string, valor: unknown) =>
+  putAgroKv: (clave: string, valor: unknown, anterior?: unknown) =>
     pedir<void>(`/agro-kv/${encodeURIComponent(clave)}`, {
       method: 'PUT',
-      body: JSON.stringify({ valor }),
+      body: JSON.stringify({ valor, anterior }),
     }),
 
   getMonitoreoTemperatura: () =>
